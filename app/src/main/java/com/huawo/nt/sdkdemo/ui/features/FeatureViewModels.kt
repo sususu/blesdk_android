@@ -97,7 +97,7 @@ class AlarmsViewModel(
     fun addDemoAlarm() = runAction(R.string.alarms_adding) {
         val alarm = repository.createDemoAlarm(content = str(R.string.alarms_demo_content))
         repository.addAlarm(alarm)
-        str(R.string.alarms_add_ok) + "\nwl=${repository.isWlProtocol()}"
+        str(R.string.alarms_add_ok)
     }
 
     fun deleteAllAlarms() = runAction(R.string.alarms_deleting) {

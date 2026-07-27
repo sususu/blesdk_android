@@ -1,5 +1,7 @@
 package com.huawo.nt.sdkdemo.data.model
 
+import java.io.File
+
 data class BleDevice(
     val name: String? = null,
     val macAddress: String,
@@ -33,6 +35,74 @@ data class HealthDataCount(
     val heartrateCount: Int = 0,
     val hrfCount: Int = 0,
 )
+
+/** Watch music available storage (SDK callback, units in KB). */
+data class MusicStorage(
+    val availableKb: Int,
+    val totalKb: Int,
+)
+
+/**
+ * Music push progress callbacks (all delivered on the main thread).
+ * [onChannel]: actual channel name used, e.g. `"SPP"` / `"Sifli"`.
+ * [onProgress]: 0f~1f.
+ */
+interface MusicTransferCallback {
+    fun onChannel(channel: String)
+    fun onReady()
+    fun onProgress(progress: Float)
+    fun onSuccess()
+    fun onFail(code: Int, message: String)
+}
+
+/** Watch album free storage (returned by device, units in KB). */
+data class AlbumIdleStorage(
+    val availableKb: Int,
+)
+
+/**
+ * One album photo pending push.
+ *
+ * @param index Watch album slot ID (typically 1..50, allocated by [com.huawo.nt.sdkdemo.data.repository.BleRepository.allocateAlbumIndices])
+ * @param file  Local source image copied to app cache; transcoding and preview read this file
+ */
+data class AlbumPhotoItem(
+    val index: Int,
+    val file: File,
+)
+
+/**
+ * Album push progress callbacks.
+ * Repository delivers on the main thread; [onProgress] progress range is 0f..1f.
+ */
+interface AlbumTransferCallback {
+    /** Actual channel used: "SPP" or "Sifli". */
+    fun onChannel(channel: String)
+    fun onReady()
+    fun onProgress(progress: Float)
+    fun onSuccess()
+    fun onFail(code: Int, message: String)
+}
+
+/** Device GPS / AGPS status from [com.huawo.sdk.bluetoothsdk.BluetoothSDK.getDeviceGpsStatus]. */
+data class BleGpsStatus(
+    val agpsValidStartTimeMs: Long = 0L,
+    val agpsValidEndTimeMs: Long = 0L,
+    val gpsClipType: String? = null,
+    val gpsFirmwareVersion: String? = null,
+    val gpsFirmwareBuild: Int = 0,
+)
+
+/**
+ * AGPS zip push callbacks (main thread).
+ * [onProgress] range is 0f..1f from [com.huawo.watchface.SifliWatchSDK.syncZipFile].
+ */
+interface AgpsTransferCallback {
+    fun onReady()
+    fun onProgress(progress: Float)
+    fun onSuccess()
+    fun onFail(code: Int, message: String)
+}
 
 data class BleActivity(
     val index: Int = 0,

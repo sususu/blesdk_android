@@ -5,7 +5,7 @@ import com.huawo.nt.sdkdemo.data.model.BleDeviceInfo
 import com.huawo.nt.sdkdemo.data.model.BoundDeviceRecord
 import org.json.JSONObject
 
-/** App 侧绑定信息本地存储（与 SDK 的 setBind 标记无关）。 */
+/** Local storage for app-side binding info (independent of the SDK setBind flag). */
 class BoundDeviceStore(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 

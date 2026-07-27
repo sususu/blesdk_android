@@ -18,8 +18,11 @@ import com.huawo.nt.sdkdemo.databinding.FragmentHomeBinding
 import com.huawo.nt.sdkdemo.ui.ViewModelFactory
 import com.huawo.nt.sdkdemo.ui.bind.BindFlowDialogFragment
 import com.huawo.nt.sdkdemo.ui.common.LogAdapter
+import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateFragment
 import com.huawo.nt.sdkdemo.ui.features.AlarmsFragment
+import com.huawo.nt.sdkdemo.ui.features.AlbumTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.GoalsFragment
+import com.huawo.nt.sdkdemo.ui.features.MusicTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.NotifyFragment
 import com.huawo.nt.sdkdemo.ui.scan.ScanConnectFragment
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowDialogFragment
@@ -75,6 +78,15 @@ class HomeFragment : Fragment() {
         }
         binding.btnNotify.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(NotifyFragment())
+        }
+        binding.btnMusic.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(MusicTransferFragment())
+        }
+        binding.btnAlbum.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(AlbumTransferFragment())
+        }
+        binding.btnAgps.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(AgpsUpdateFragment())
         }
 
         parentFragmentManager.setFragmentResultListener(
@@ -176,6 +188,9 @@ class HomeFragment : Fragment() {
         binding.btnGoals.isEnabled = canFeature
         binding.btnAlarms.isEnabled = canFeature
         binding.btnNotify.isEnabled = canFeature
+        binding.btnMusic.isEnabled = canFeature
+        binding.btnAlbum.isEnabled = canFeature
+        binding.btnAgps.isEnabled = canFeature
 
         logAdapter.submit(state.logs)
     }

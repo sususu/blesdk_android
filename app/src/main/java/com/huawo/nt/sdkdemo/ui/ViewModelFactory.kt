@@ -7,7 +7,10 @@ import com.huawo.nt.sdkdemo.SdkDemoApp
 import com.huawo.nt.sdkdemo.data.repository.BleRepository
 import com.huawo.nt.sdkdemo.ui.bind.BindFlowViewModel
 import com.huawo.nt.sdkdemo.ui.features.AlarmsViewModel
+import com.huawo.nt.sdkdemo.ui.features.AlbumTransferViewModel
+import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateViewModel
 import com.huawo.nt.sdkdemo.ui.features.GoalsViewModel
+import com.huawo.nt.sdkdemo.ui.features.MusicTransferViewModel
 import com.huawo.nt.sdkdemo.ui.features.NotifyViewModel
 import com.huawo.nt.sdkdemo.ui.main.HomeViewModel
 import com.huawo.nt.sdkdemo.ui.scan.ScanViewModel
@@ -34,6 +37,12 @@ class ViewModelFactory(
                 AlarmsViewModel(application, repository) as T
             modelClass.isAssignableFrom(NotifyViewModel::class.java) ->
                 NotifyViewModel(application, repository) as T
+            modelClass.isAssignableFrom(MusicTransferViewModel::class.java) ->
+                MusicTransferViewModel(application, repository) as T
+            modelClass.isAssignableFrom(AlbumTransferViewModel::class.java) ->
+                AlbumTransferViewModel(application, repository) as T
+            modelClass.isAssignableFrom(AgpsUpdateViewModel::class.java) ->
+                AgpsUpdateViewModel(application, repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
         }
     }

@@ -49,7 +49,8 @@ kotlin {
 }
 
 dependencies {
-    implementation files('libs/BluetoothSDK-2.5.4.126.aar')
+    // Local vendor AARs under app/libs (exclude unused WL BmpConvert)
+    implementation fileTree(dir: 'libs', include: ['*.aar'], exclude: ['BmpConvert*.aar'])
 
     implementation libs.androidx.appcompat
     implementation libs.androidx.core.ktx

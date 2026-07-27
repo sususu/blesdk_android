@@ -12,9 +12,20 @@ import com.huawo.nt.sdkdemo.data.model.BleSleep
 import com.huawo.nt.sdkdemo.data.model.BoundDeviceRecord
 import com.huawo.nt.sdkdemo.data.model.ConnectionEvent
 import com.huawo.nt.sdkdemo.data.model.HealthDataCount
+import com.huawo.nt.sdkdemo.data.model.AlbumIdleStorage
+import com.huawo.nt.sdkdemo.data.model.AlbumPhotoItem
+import com.huawo.nt.sdkdemo.data.model.AlbumTransferCallback
+import com.huawo.nt.sdkdemo.data.model.AgpsTransferCallback
+import com.huawo.nt.sdkdemo.data.model.BleGpsStatus
+import com.huawo.nt.sdkdemo.data.model.MusicStorage
+import com.huawo.nt.sdkdemo.data.model.MusicTransferCallback
 import com.huawo.nt.sdkdemo.data.model.ScanEvent
 import com.huawo.nt.sdkdemo.data.model.SdkException
+import com.huawo.nt.sdkdemo.util.AlbumBinConverter
+import com.huawo.nt.sdkdemo.util.MediaZipUtils
+import com.huawo.nt.sdkdemo.util.awaitBoolValue
 import com.huawo.nt.sdkdemo.util.awaitCreateBond
+import com.huawo.nt.sdkdemo.util.awaitIntValue
 import com.huawo.nt.sdkdemo.util.awaitRemoveBond
 import com.huawo.nt.sdkdemo.util.awaitVoid
 import com.huawo.sdk.bluetoothsdk.BluetoothSDK
@@ -24,17 +35,24 @@ import com.huawo.sdk.bluetoothsdk.core.callback.ScanCallback
 import com.huawo.sdk.bluetoothsdk.core.model.Device
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.ActivityNumCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.AlarmsCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.AvailableStorageCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.BoolValueCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.ConnectionStateCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.ContactsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.DeviceInfoCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.DrinkWaterReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.GoalCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.GpsStatusCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.HeartratesCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntArrayCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SedentaryReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SleepsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SocialAppSwitchesCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SportsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.WashHandReminderCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.ota.OtaCallback
+import com.huawo.watchface.Callback as SifliCallback
+import com.huawo.watchface.SifliWatchSDK
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.GetActivityNum
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.GetSports
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.ActivityNum
@@ -46,6 +64,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.EmergencyContact
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Gender
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Goal
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.GoalType
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.GpsStatus
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Heartrate
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.RepeatPeriodUnit
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.SedentaryReminder
@@ -59,6 +78,8 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Unit as MeasureUnit
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.UserInfo
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.WashHandReminder
 import com.huawo.sdk.bluetoothsdk.interfaces.utils.LanguageUtils
+import com.huawo.sdk.bluetoothsdk.spp.SppFilesTransferTask
+import java.io.File
 import java.util.Date
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -93,6 +114,7 @@ class BleRepository(private val application: Application) {
     fun init(maxMtu: Int = 247) {
         if (!initialized) {
             BluetoothSDK.init(application, maxMtu)
+            SifliWatchSDK.getInstance().init(application)
             initialized = true
             registerConnectionListener()
         }
@@ -109,6 +131,43 @@ class BleRepository(private val application: Application) {
     fun getVersion(): String = BluetoothSDK.getVersion()
 
     fun isConnected(): Boolean = BluetoothSDK.isConnected()
+
+    fun currentConnectedName(): String? = BluetoothSDK.getConnectedDevice()?.name
+
+    fun currentConnectedMac(): String? = BluetoothSDK.getConnectedDevice()?.mac
+
+    /**
+     * Query watch GPS / AGPS status ([BluetoothSDK.getDeviceGpsStatus]).
+     */
+    suspend fun getDeviceGpsStatus(): BleGpsStatus =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getDeviceGpsStatus(
+                object : GpsStatusCallback() {
+                    override fun onSuccess(status: GpsStatus?) {
+                        mainHandler.post {
+                            if (!cont.isActive) return@post
+                            if (status == null) {
+                                cont.resumeWithException(
+                                    SdkException(-1, "getDeviceGpsStatus returned null"),
+                                )
+                            } else {
+                                cont.resume(status.toModel())
+                            }
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(
+                                    SdkException(code, "getDeviceGpsStatus failed"),
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+        }
 
     fun isBind(): Boolean = BluetoothSDK.isBind()
 
@@ -417,8 +476,6 @@ class BleRepository(private val application: Application) {
 
     // region §11 Alarms & reminders
 
-    fun isWlProtocol(): Boolean = BluetoothSDK.isWlProtocol()
-
     suspend fun getAlarms(): List<Alarm> =
         suspendCancellableCoroutine { cont ->
             BluetoothSDK.getAlarms(
@@ -440,11 +497,7 @@ class BleRepository(private val application: Application) {
 
     suspend fun addAlarm(alarm: Alarm) {
         awaitVoid("addAlarm failed") { cb ->
-            if (BluetoothSDK.isWlProtocol()) {
-                BluetoothSDK.addAlarmV2(alarm, cb)
-            } else {
-                BluetoothSDK.addAlarm(alarm, cb)
-            }
+            BluetoothSDK.addAlarm(alarm, cb)
         }
     }
 
@@ -660,6 +713,566 @@ class BleRepository(private val application: Application) {
 
     // endregion
 
+    // region §14 Music file push (SPP / Sifli)
+    //
+    // Channel strategy (aligned with HaWoFit MusicSelectActivity; Demo does not use WL):
+    // 1) Classic BT connected → SPP: SppFilesTransferTask.sendMusicFiles
+    // 2) Otherwise → Sifli ZIP: zip files then SifliWatchSDK.syncZipFile(..., type=4)
+    // 3) SPP failure and not user cancel (code=26) → fallback to Sifli
+    // Music and album are mutually exclusive; cannot run concurrently.
+
+    /** In-progress SPP music task; stopSending on cancel. */
+    @Volatile
+    private var sppMusicTask: SppFilesTransferTask? = null
+
+    /** Query watch music available/total storage, units in KB. */
+    suspend fun getMusicStorage(): MusicStorage =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getDeviceMusicAvailableStorage(
+                object : AvailableStorageCallback() {
+                    override fun onSuccess(available: Int, total: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(MusicStorage(available, total))
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(
+                                    SdkException(code, "getDeviceMusicAvailableStorage failed"),
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    /**
+     * Whether classic Bluetooth (BT Classic) is connected.
+     * Unlike [isBonded]: bonded does not mean the profile is connected.
+     * Music/album prefer SPP only when this returns true.
+     */
+    suspend fun isClassicBtConnected(): Boolean =
+        awaitBoolValue("getBTConnectionState failed") {
+            BluetoothSDK.getBTConnectionState(it)
+        }
+
+    fun isMusicTransferring(): Boolean =
+        SppFilesTransferTask.isTransferring() ||
+            SifliWatchSDK.getInstance().isWorking
+
+    /**
+     * Push music files to the watch.
+     *
+     * @param files Local readable files (caller verified existence)
+     * @param callback Channel name, progress (0~1), success/failure all on main thread
+     *
+     * Channel: classic BT connected → SPP; otherwise Sifli ZIP (type=4).
+     * SPP failure (except cancel code=26) falls back to Sifli.
+     */
+    fun pushMusicFiles(files: List<File>, callback: MusicTransferCallback) {
+        if (files.isEmpty()) {
+            callback.onFail(-1, "No music files")
+            return
+        }
+        if (isMusicTransferring() || isAlbumTransferring()) {
+            callback.onFail(-2, "Transfer already in progress")
+            return
+        }
+        // Check classic BT connection first, then choose SPP or Sifli
+        BluetoothSDK.getBTConnectionState(
+            object : BoolValueCallback() {
+                override fun onSuccess(btConnected: Boolean) {
+                    mainHandler.post {
+                        if (btConnected) {
+                            pushMusicViaSpp(files, callback, allowFallback = true)
+                        } else {
+                            pushMusicViaSifli(files, callback)
+                        }
+                    }
+                }
+
+                override fun onFail(code: Int) {
+                    // If BT state query fails, still try Sifli (depends on BLE + MAC)
+                    mainHandler.post { pushMusicViaSifli(files, callback) }
+                }
+            },
+        )
+    }
+
+    /** Cancel in-progress SPP or Sifli music transfer. */
+    fun cancelMusicTransfer() {
+        sppMusicTask?.stopSending()
+        sppMusicTask = null
+        if (SifliWatchSDK.getInstance().isWorking) {
+            runCatching { SifliWatchSDK.getInstance().stop() }
+        }
+    }
+
+    /**
+     * Push music via classic BT SPP.
+     * @param allowFallback Whether to fall back to Sifli on failure (user cancel code=26 does not fallback)
+     */
+    private fun pushMusicViaSpp(
+        files: List<File>,
+        callback: MusicTransferCallback,
+        allowFallback: Boolean,
+    ) {
+        callback.onChannel("SPP")
+        val task = SppFilesTransferTask()
+        sppMusicTask = task
+        task.sendMusicFiles(
+            files,
+            object : OtaCallback() {
+                override fun onReady() {
+                    mainHandler.post { callback.onReady() }
+                }
+
+                override fun onUpload(progress: Float) {
+                    mainHandler.post { callback.onProgress(progress) }
+                }
+
+                override fun onSuccess() {
+                    mainHandler.post {
+                        sppMusicTask = null
+                        callback.onSuccess()
+                    }
+                }
+
+                override fun onFail(code: Int) {
+                    mainHandler.post {
+                        sppMusicTask = null
+                        // 26: production cancel code; do not fallback to avoid opening a second channel
+                        val cancelled = code == 26
+                        if (allowFallback && !cancelled) {
+                            pushMusicViaSifli(files, callback)
+                        } else {
+                            callback.onFail(code, "SPP push failed")
+                        }
+                    }
+                }
+            },
+        )
+    }
+
+    /**
+     * Push music via Sifli channel:
+     * 1) Zip selected files (aligned with HaWoFit FileUtils.compressFilesToZip)
+     * 2) [SifliWatchSDK.syncZipFile] type=4 = music; needByteAlign=true matches production
+     */
+    private fun pushMusicViaSifli(files: List<File>, callback: MusicTransferCallback) {
+        val mac = connectedMacOrNull()
+        if (mac.isNullOrBlank()) {
+            callback.onFail(-5, "Device MAC unavailable for Sifli push")
+            return
+        }
+        callback.onChannel("Sifli")
+        Thread {
+            try {
+                val zip =
+                    MediaZipUtils.zipFiles(
+                        application,
+                        files,
+                        "music_${System.currentTimeMillis()}.zip",
+                    )
+                mainHandler.post {
+                    callback.onReady()
+                    SifliWatchSDK.getInstance().syncZipFile(
+                        true,
+                        mac,
+                        zip.absolutePath,
+                        4,
+                        object : SifliCallback {
+                            override fun onProgress(current: Long, total: Long) {
+                                val progress =
+                                    if (total > 0L) current.toFloat() / total.toFloat() else 0f
+                                mainHandler.post { callback.onProgress(progress) }
+                            }
+
+                            override fun onSuccess() {
+                                mainHandler.post { callback.onSuccess() }
+                            }
+
+                            override fun onError(code: Int) {
+                                mainHandler.post {
+                                    callback.onFail(code, "Sifli music push failed")
+                                }
+                            }
+
+                            override fun onCancel() {
+                                mainHandler.post {
+                                    callback.onFail(14, "Sifli music push cancelled")
+                                }
+                            }
+                        },
+                    )
+                }
+            } catch (e: Exception) {
+                mainHandler.post {
+                    callback.onFail(-4, e.message ?: "Sifli music zip failed")
+                }
+            }
+        }.start()
+    }
+
+    // endregion
+
+    // region §14 Album file push (SPP / Sifli)
+    //
+    // Channel strategy similar to music (Demo does not use WL):
+    // 1) Classic BT connected → convert to ezip bin then SPP sendAblumFiles
+    // 2) Otherwise → convert to bin then zip, Sifli syncZipFile type=3
+    // 3) SPP failure (not cancel) → fallback to Sifli
+    // Slots: free indices from 1..50 excluding watch IDs and locally selected IDs
+
+    @Volatile
+    private var sppAlbumTask: SppFilesTransferTask? = null
+
+    /** HaWoFit album max photo count. */
+    private val albumMaxSlots = 50
+
+    /** Album free storage in KB (idle only, no total). */
+    suspend fun getAlbumIdleStorage(): AlbumIdleStorage {
+        val available =
+            awaitIntValue("getDeviceAlbumIdleStorage failed") {
+                BluetoothSDK.getDeviceAlbumIdleStorage(it)
+            }
+        return AlbumIdleStorage(available)
+    }
+
+    suspend fun getAlbumFileIdList(): List<Int> =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getDeviceAlbumFileIdList(
+                object : IntArrayCallback() {
+                    override fun onSuccess(intArray: List<Int>?) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(intArray.orEmpty())
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(
+                                    SdkException(code, "getDeviceAlbumFileIdList failed"),
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    /**
+     * Allocate free album slot indices in 1..[albumMaxSlots] (typically 50).
+     *
+     * Excludes:
+     * - IDs already on the watch ([getAlbumFileIdList])
+     * - Caller-held [alreadySelected] (for append flows; current UI replaces the list, so usually empty)
+     *
+     * @return May be shorter than [count] when free slots are insufficient; empty if none free
+     */
+    suspend fun allocateAlbumIndices(
+        count: Int,
+        alreadySelected: Collection<Int> = emptyList(),
+    ): List<Int> {
+        val occupied =
+            runCatching { getAlbumFileIdList() }.getOrDefault(emptyList()).toMutableSet()
+        occupied.addAll(alreadySelected)
+        val free = (1..albumMaxSlots).filter { it !in occupied }
+        return free.take(count)
+    }
+
+    /** True if an SPP album task or Sifli SDK work is in progress. */
+    fun isAlbumTransferring(): Boolean =
+        SppFilesTransferTask.isTransferring() ||
+            SifliWatchSDK.getInstance().isWorking
+
+    /**
+     * Push album photos to the watch.
+     *
+     * Channel policy:
+     * 1. Classic BT connected → prefer [pushAlbumViaSpp] (send ezip bins)
+     * 2. Otherwise / BT state query failed → [pushAlbumViaSifli] (ezip then ZIP, type=3)
+     * 3. On SPP failure (except user cancel, code!=26), automatically fall back to Sifli
+     *
+     * @param width  Convert target width (UI "watch size")
+     * @param height Convert target height
+     */
+    fun pushAlbumFiles(
+        photos: List<AlbumPhotoItem>,
+        callback: AlbumTransferCallback,
+        width: Int = AlbumBinConverter.DEFAULT_WIDTH,
+        height: Int = AlbumBinConverter.DEFAULT_HEIGHT,
+    ) {
+        if (photos.isEmpty()) {
+            callback.onFail(-1, "No album files")
+            return
+        }
+        // Mutual exclusion with music transfer (shared SPP / Sifli resources)
+        if (isAlbumTransferring() || isMusicTransferring()) {
+            callback.onFail(-2, "Transfer already in progress")
+            return
+        }
+        BluetoothSDK.getBTConnectionState(
+            object : BoolValueCallback() {
+                override fun onSuccess(btConnected: Boolean) {
+                    mainHandler.post {
+                        if (btConnected) {
+                            pushAlbumViaSpp(photos, callback, width, height, allowFallback = true)
+                        } else {
+                            pushAlbumViaSifli(photos, callback, width, height)
+                        }
+                    }
+                }
+
+                override fun onFail(code: Int) {
+                    // Unknown classic-BT state → still try Sifli
+                    mainHandler.post {
+                        pushAlbumViaSifli(photos, callback, width, height)
+                    }
+                }
+            },
+        )
+    }
+
+    /** Stop SPP album task and/or Sifli sync (whichever is active). */
+    fun cancelAlbumTransfer() {
+        sppAlbumTask?.stopSending()
+        sppAlbumTask = null
+        if (SifliWatchSDK.getInstance().isWorking) {
+            runCatching { SifliWatchSDK.getInstance().stop() }
+        }
+    }
+
+    /**
+     * Classic BT SPP push: convert on a worker thread via [AlbumBinConverter.convert],
+     * then send on the main thread with [SppFilesTransferTask.sendAblumFiles].
+     *
+     * @param allowFallback if true, convert failure or SPP onFail (non-cancel) switches to Sifli
+     */
+    private fun pushAlbumViaSpp(
+        photos: List<AlbumPhotoItem>,
+        callback: AlbumTransferCallback,
+        width: Int,
+        height: Int,
+        allowFallback: Boolean,
+    ) {
+        callback.onChannel("SPP")
+        Thread {
+            try {
+                val bins =
+                    photos.map { item ->
+                        AlbumBinConverter.convert(
+                            application,
+                            item.index,
+                            item.file.absolutePath,
+                            width,
+                            height,
+                        )
+                    }
+                val files = AlbumBinConverter.flatTransferFiles(bins)
+                mainHandler.post {
+                    val task = SppFilesTransferTask()
+                    sppAlbumTask = task
+                    task.sendAblumFiles(
+                        files,
+                        object : OtaCallback() {
+                            override fun onReady() {
+                                mainHandler.post { callback.onReady() }
+                            }
+
+                            override fun onUpload(progress: Float) {
+                                mainHandler.post { callback.onProgress(progress) }
+                            }
+
+                            override fun onSuccess() {
+                                mainHandler.post {
+                                    sppAlbumTask = null
+                                    callback.onSuccess()
+                                }
+                            }
+
+                            override fun onFail(code: Int) {
+                                mainHandler.post {
+                                    sppAlbumTask = null
+                                    // code 26: user/upper-layer cancel — do not auto-switch channel
+                                    val cancelled = code == 26
+                                    if (allowFallback && !cancelled) {
+                                        pushAlbumViaSifli(photos, callback, width, height)
+                                    } else {
+                                        callback.onFail(code, "SPP album push failed")
+                                    }
+                                }
+                            }
+                        },
+                    )
+                }
+            } catch (e: Exception) {
+                mainHandler.post {
+                    if (allowFallback) {
+                        pushAlbumViaSifli(photos, callback, width, height)
+                    } else {
+                        callback.onFail(-4, e.message ?: "SPP album convert failed")
+                    }
+                }
+            }
+        }.start()
+    }
+
+    /**
+     * Sifli push: convert to ezip → zip → [SifliWatchSDK.syncZipFile] (type=3 = album).
+     * Requires a valid device MAC (connected or locally bound).
+     */
+    private fun pushAlbumViaSifli(
+        photos: List<AlbumPhotoItem>,
+        callback: AlbumTransferCallback,
+        width: Int,
+        height: Int,
+    ) {
+        val mac = connectedMacOrNull()
+        if (mac.isNullOrBlank()) {
+            callback.onFail(-5, "Device MAC unavailable for Sifli push")
+            return
+        }
+        callback.onChannel("Sifli")
+        Thread {
+            try {
+                val bins =
+                    photos.map { item ->
+                        AlbumBinConverter.convert(
+                            application,
+                            item.index,
+                            item.file.absolutePath,
+                            width,
+                            height,
+                        )
+                    }
+                val zip =
+                    MediaZipUtils.zipFiles(
+                        application,
+                        AlbumBinConverter.flatTransferFiles(bins),
+                        "album_${System.currentTimeMillis()}.zip",
+                    )
+                mainHandler.post {
+                    callback.onReady()
+                    SifliWatchSDK.getInstance().syncZipFile(
+                        true,
+                        mac,
+                        zip.absolutePath,
+                        3, // Sifli file type: 3 = album
+                        object : SifliCallback {
+                            override fun onProgress(current: Long, total: Long) {
+                                val progress =
+                                    if (total > 0L) current.toFloat() / total.toFloat() else 0f
+                                mainHandler.post { callback.onProgress(progress) }
+                            }
+
+                            override fun onSuccess() {
+                                mainHandler.post { callback.onSuccess() }
+                            }
+
+                            override fun onError(code: Int) {
+                                mainHandler.post {
+                                    callback.onFail(code, "Sifli album push failed")
+                                }
+                            }
+
+                            override fun onCancel() {
+                                mainHandler.post {
+                                    callback.onFail(14, "Sifli album push cancelled")
+                                }
+                            }
+                        },
+                    )
+                }
+            } catch (e: Exception) {
+                mainHandler.post {
+                    callback.onFail(-4, e.message ?: "Sifli album convert/zip failed")
+                }
+            }
+        }.start()
+    }
+
+    /**
+     * Device MAC required for Sifli push:
+     * Prefer current BLE connected device, otherwise fall back to local bound record.
+     */
+    private fun connectedMacOrNull(): String? =
+        BluetoothSDK.getConnectedDevice()?.mac?.takeIf { it.isNotBlank() }
+            ?: boundStore.load()?.macAddress?.takeIf { it.isNotBlank() }
+
+    // endregion
+
+    // region §15 AGPS zip push (Sifli, type=3)
+    // Aligned with HaWoFit DeviceGpsUpgradeManager.pushZIP2Device(UpgradeType.AGPS)
+
+    /**
+     * Push a prepared AGPS zip to the watch via [SifliWatchSDK.syncZipFile] type=3.
+     * Zip entries should already be under `music/gps/agps/` (see [com.huawo.nt.sdkdemo.util.AgpsXywBuilder]).
+     */
+    fun pushAgpsZip(zipFile: File, callback: AgpsTransferCallback) {
+        if (!zipFile.exists() || zipFile.length() == 0L) {
+            callback.onFail(-3, "AGPS zip missing or empty")
+            return
+        }
+        if (SifliWatchSDK.getInstance().isWorking) {
+            callback.onFail(190, "Sifli SDK is busy")
+            return
+        }
+        val mac = connectedMacOrNull()
+        if (mac.isNullOrBlank()) {
+            callback.onFail(-5, "Device MAC unavailable for AGPS push")
+            return
+        }
+        if (!isConnected()) {
+            callback.onFail(408, "BLE disconnected")
+            return
+        }
+        mainHandler.post {
+            callback.onReady()
+            SifliWatchSDK.getInstance().syncZipFile(
+                true,
+                mac,
+                zipFile.absolutePath,
+                3, // same type as DeviceGpsUpgradeManager UpgradeType.AGPS
+                object : SifliCallback {
+                    override fun onProgress(current: Long, total: Long) {
+                        val progress =
+                            if (total > 0L) current.toFloat() / total.toFloat() else 0f
+                        mainHandler.post { callback.onProgress(progress) }
+                    }
+
+                    override fun onSuccess() {
+                        mainHandler.post { callback.onSuccess() }
+                    }
+
+                    override fun onError(code: Int) {
+                        mainHandler.post {
+                            callback.onFail(code, "AGPS push failed")
+                        }
+                    }
+
+                    override fun onCancel() {
+                        mainHandler.post {
+                            callback.onFail(10006, "AGPS push cancelled")
+                        }
+                    }
+                },
+            )
+        }
+    }
+
+    fun cancelAgpsTransfer() {
+        if (SifliWatchSDK.getInstance().isWorking) {
+            runCatching { SifliWatchSDK.getInstance().stop() }
+        }
+    }
+
+    // endregion
+
     private fun registerConnectionListener() {
         if (!initialized || connectionListenerRegistered) return
         BluetoothSDK.addConnectionStateListener(connectionStateCallback)
@@ -703,6 +1316,15 @@ class BleRepository(private val application: Application) {
             protocolVersion = protocolVersion,
             mapUuid = mapUUID,
             mapAuthorized = isMapAuthorized,
+        )
+
+    private fun GpsStatus.toModel() =
+        BleGpsStatus(
+            agpsValidStartTimeMs = agpsValidStartTime,
+            agpsValidEndTimeMs = agpsValidEndTime,
+            gpsClipType = gpsClipType,
+            gpsFirmwareVersion = gpsFirmwareVersion,
+            gpsFirmwareBuild = gpsFirmwareBuild,
         )
 
     private fun Sport.toModel() =

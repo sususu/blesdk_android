@@ -47,7 +47,9 @@ abstract class BaseFeatureFragment : Fragment() {
                     binding.statusText.text = state.status
                     binding.resultText.text = state.result
                     for (i in 0 until binding.actionsContainer.childCount) {
-                        binding.actionsContainer.getChildAt(i).isEnabled = !state.busy
+                        val child = binding.actionsContainer.getChildAt(i)
+                        val keep = child.tag == true
+                        child.isEnabled = !state.busy || keep
                     }
                 }
             }
@@ -57,6 +59,7 @@ abstract class BaseFeatureFragment : Fragment() {
     protected fun addActionButton(
         container: LinearLayout,
         textRes: Int,
+        keepEnabledWhileBusy: Boolean = false,
         onClick: () -> Unit,
     ) {
         val button =
@@ -68,6 +71,7 @@ abstract class BaseFeatureFragment : Fragment() {
                     ).also { it.bottomMargin = (8 * resources.displayMetrics.density).toInt() }
                 isAllCaps = false
                 text = getString(textRes)
+                tag = keepEnabledWhileBusy
                 setOnClickListener { onClick() }
             }
         container.addView(button)
