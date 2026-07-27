@@ -130,7 +130,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_bind"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="4dp"
@@ -139,7 +139,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_sync"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
@@ -155,7 +155,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_unbind"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/Widget.SDKDemo.Button.TextButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="4dp"
@@ -164,13 +164,44 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_disconnect"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/Widget.SDKDemo.Button.TextButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:text="@string/disconnect" />
         </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/feature_section"
+            android:textAppearance="?attr/textAppearanceSubtitle2" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_goals"
+            style="@style/Widget.SDKDemo.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/feature_goals" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_alarms"
+            style="@style/Widget.SDKDemo.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/feature_alarms" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_notify"
+            style="@style/Widget.SDKDemo.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/feature_notify" />
     </LinearLayout>
 
     <TextView

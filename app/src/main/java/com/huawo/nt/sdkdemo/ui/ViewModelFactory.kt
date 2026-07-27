@@ -6,6 +6,9 @@ import androidx.lifecycle.ViewModelProvider
 import com.huawo.nt.sdkdemo.SdkDemoApp
 import com.huawo.nt.sdkdemo.data.repository.BleRepository
 import com.huawo.nt.sdkdemo.ui.bind.BindFlowViewModel
+import com.huawo.nt.sdkdemo.ui.features.AlarmsViewModel
+import com.huawo.nt.sdkdemo.ui.features.GoalsViewModel
+import com.huawo.nt.sdkdemo.ui.features.NotifyViewModel
 import com.huawo.nt.sdkdemo.ui.main.HomeViewModel
 import com.huawo.nt.sdkdemo.ui.scan.ScanViewModel
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowViewModel
@@ -25,6 +28,12 @@ class ViewModelFactory(
                 BindFlowViewModel(application, repository) as T
             modelClass.isAssignableFrom(UnbindFlowViewModel::class.java) ->
                 UnbindFlowViewModel(application, repository) as T
+            modelClass.isAssignableFrom(GoalsViewModel::class.java) ->
+                GoalsViewModel(application, repository) as T
+            modelClass.isAssignableFrom(AlarmsViewModel::class.java) ->
+                AlarmsViewModel(application, repository) as T
+            modelClass.isAssignableFrom(NotifyViewModel::class.java) ->
+                NotifyViewModel(application, repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
         }
     }

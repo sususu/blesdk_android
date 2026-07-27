@@ -278,6 +278,15 @@ class HomeViewModel(
         return true
     }
 
+    fun prepareFeature(): Boolean {
+        if (_uiState.value.busy) return false
+        if (!repository.isConnected()) {
+            _uiState.update { it.copy(status = str(R.string.status_need_connect_first)) }
+            return false
+        }
+        return true
+    }
+
     fun sync() {
         if (_uiState.value.busy) return
         viewModelScope.launch {

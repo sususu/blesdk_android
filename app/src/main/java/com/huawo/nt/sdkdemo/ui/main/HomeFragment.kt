@@ -18,6 +18,9 @@ import com.huawo.nt.sdkdemo.databinding.FragmentHomeBinding
 import com.huawo.nt.sdkdemo.ui.ViewModelFactory
 import com.huawo.nt.sdkdemo.ui.bind.BindFlowDialogFragment
 import com.huawo.nt.sdkdemo.ui.common.LogAdapter
+import com.huawo.nt.sdkdemo.ui.features.AlarmsFragment
+import com.huawo.nt.sdkdemo.ui.features.GoalsFragment
+import com.huawo.nt.sdkdemo.ui.features.NotifyFragment
 import com.huawo.nt.sdkdemo.ui.scan.ScanConnectFragment
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowDialogFragment
 import com.huawo.nt.sdkdemo.util.AppLanguage
@@ -64,6 +67,15 @@ class HomeFragment : Fragment() {
             }
         }
         binding.btnDisconnect.setOnClickListener { viewModel.disconnect() }
+        binding.btnGoals.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(GoalsFragment())
+        }
+        binding.btnAlarms.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(AlarmsFragment())
+        }
+        binding.btnNotify.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(NotifyFragment())
+        }
 
         parentFragmentManager.setFragmentResultListener(
             ScanConnectFragment.RESULT_KEY,
@@ -154,13 +166,25 @@ class HomeFragment : Fragment() {
         val canBind = !state.busy && device != null && !state.bound
         val canSync = !state.busy && (state.bound || state.phase == DevicePhase.CONNECTED)
         val canUnbind = !state.busy && state.bound
+        val canFeature = !state.busy && device != null &&
+            (state.bound || state.phase == DevicePhase.CONNECTED)
         binding.btnScan.isEnabled = !state.busy
         binding.btnBind.isEnabled = canBind
         binding.btnSync.isEnabled = canSync
         binding.btnUnbind.isEnabled = canUnbind
         binding.btnDisconnect.isEnabled = !state.busy && device != null
+        binding.btnGoals.isEnabled = canFeature
+        binding.btnAlarms.isEnabled = canFeature
+        binding.btnNotify.isEnabled = canFeature
 
         logAdapter.submit(state.logs)
+    }
+
+    private fun openFeature(fragment: Fragment) {
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(fragment::class.java.simpleName)
+            .commit()
     }
 
     override fun onDestroyView() {

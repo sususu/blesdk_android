@@ -14,7 +14,7 @@ enum class AppLanguage(val prefValue: String) {
 
     companion object {
         fun fromPref(value: String?): AppLanguage =
-            entries.firstOrNull { it.prefValue == value } ?: ENGLISH
+            entries.firstOrNull { it.prefValue == value } ?: SYSTEM
     }
 }
 
@@ -24,7 +24,7 @@ object LocaleHelper {
 
     fun getLanguage(context: Context): AppLanguage {
         val value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_LANGUAGE, AppLanguage.ENGLISH.prefValue)
+            .getString(KEY_LANGUAGE, AppLanguage.SYSTEM.prefValue)
         return AppLanguage.fromPref(value)
     }
 

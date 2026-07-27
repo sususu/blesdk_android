@@ -9,6 +9,24 @@
         <item name="colorOnSecondary">@color/black</item>
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <item name="bottomSheetDialogTheme">@style/ThemeOverlay.SDKDemo.BottomSheetDialog</item>
+        <item name="materialButtonStyle">@style/Widget.SDKDemo.Button</item>
+        <item name="borderlessButtonStyle">@style/Widget.SDKDemo.Button.TextButton</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.SDKDemo.Button.Outlined</item>
+    </style>
+
+    <style name="Widget.SDKDemo.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:textAllCaps">false</item>
+        <item name="textAllCaps">false</item>
+    </style>
+
+    <style name="Widget.SDKDemo.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textAllCaps">false</item>
+        <item name="textAllCaps">false</item>
+    </style>
+
+    <style name="Widget.SDKDemo.Button.TextButton" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textAllCaps">false</item>
+        <item name="textAllCaps">false</item>
     </style>
 
     <style name="ThemeOverlay.SDKDemo.BottomSheetDialog" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">

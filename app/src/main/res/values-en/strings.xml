@@ -124,4 +124,73 @@
     <string name="unbind_note_disconnect">Android unbind §22</string>
     <string name="unbind_note_set_bind">Android §6.2 / §22</string>
     <string name="unbind_note_local">App local persistence</string>
+
+    <string name="feature_section">Device features</string>
+    <string name="feature_goals">Goals</string>
+    <string name="feature_alarms">Alarms &amp; Reminders</string>
+    <string name="feature_notify">Notifications / Calls / Contacts</string>
+    <string name="feature_result">Result</string>
+    <string name="feature_ready">Ready</string>
+    <string name="feature_success">Success</string>
+    <string name="feature_failed">Failed: %1$s</string>
+
+    <string name="goals_get">Get goals</string>
+    <string name="goals_set_demo">Set demo goals</string>
+    <string name="goals_getting">Getting goals…</string>
+    <string name="goals_setting">Setting demo goals…</string>
+    <string name="goals_set_ok">Demo goals written</string>
+    <string name="goals_step">Steps: %1$d (protocol hundreds=%2$d)</string>
+    <string name="goals_calorie">Calorie: %1$d kcal</string>
+    <string name="goals_distance">Distance: %1$d (km/mi)</string>
+    <string name="goals_sleep">Sleep: %1$d h</string>
+    <string name="goals_duration">Duration: %1$d min</string>
+    <string name="goals_ot_km">OT distance: %.1f km</string>
+    <string name="goals_ot_mile">OT distance: %.1f mi</string>
+
+    <string name="alarms_get">Get alarms</string>
+    <string name="alarms_add_demo">Add demo alarm (07:30 weekdays)</string>
+    <string name="alarms_delete_all">Delete all alarms</string>
+    <string name="alarms_getting">Getting alarms…</string>
+    <string name="alarms_adding">Adding alarm…</string>
+    <string name="alarms_deleting">Deleting alarms…</string>
+    <string name="alarms_empty">No alarms</string>
+    <string name="alarms_add_ok">Alarm added</string>
+    <string name="alarms_delete_all_ok">All alarms deleted</string>
+    <string name="alarms_demo_content">Wake up</string>
+    <string name="reminders_get_sedentary">Get sedentary reminder</string>
+    <string name="reminders_set_sedentary">Set sedentary reminder</string>
+    <string name="reminders_set_drink">Set drink-water reminder</string>
+    <string name="reminders_set_wash">Set wash-hand reminder</string>
+    <string name="reminders_getting">Getting reminder…</string>
+    <string name="reminders_setting">Setting reminder…</string>
+    <string name="reminders_sedentary_ok">Sedentary reminder set (09:00–18:00 / 60min)</string>
+    <string name="reminders_drink_ok">Drink-water reminder set (08:00–20:00 / 60min)</string>
+    <string name="reminders_wash_ok">Wash-hand reminder set (08:00–22:00 / 2h)</string>
+
+    <string name="notify_get_switches">Get notification switches</string>
+    <string name="notify_enable_switches">Enable WeChat / SMS / IncomingCall</string>
+    <string name="notify_push_message">Push demo SMS</string>
+    <string name="notify_incoming_call">Simulate incoming call</string>
+    <string name="notify_hang_up">Hang up call</string>
+    <string name="notify_get_contacts">Get contacts</string>
+    <string name="notify_set_contacts">Set demo contacts</string>
+    <string name="notify_set_emergency">Set emergency contact</string>
+    <string name="notify_getting_switches">Getting switches…</string>
+    <string name="notify_setting_switches">Setting switches…</string>
+    <string name="notify_pushing">Pushing message…</string>
+    <string name="notify_calling">Sending incoming call…</string>
+    <string name="notify_hanging">Hanging up…</string>
+    <string name="notify_getting_contacts">Getting contacts…</string>
+    <string name="notify_setting_contacts">Setting contacts…</string>
+    <string name="notify_setting_emergency">Setting emergency contact…</string>
+    <string name="notify_switches_empty">No switches</string>
+    <string name="notify_switches_ok">Switches enabled</string>
+    <string name="notify_demo_title">Demo</string>
+    <string name="notify_demo_content">Hello from SDK Demo</string>
+    <string name="notify_push_ok">Message pushed</string>
+    <string name="notify_call_ok">Incoming call: %1$s %2$s</string>
+    <string name="notify_hangup_ok">Call hung up</string>
+    <string name="notify_contacts_empty">No contacts</string>
+    <string name="notify_contacts_ok">Demo contacts written</string>
+    <string name="notify_emergency_ok">Emergency contact set (Emergency / 120)</string>
 </resources>

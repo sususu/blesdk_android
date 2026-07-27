@@ -124,4 +124,73 @@
     <string name="unbind_note_disconnect">Android 解绑 §22</string>
     <string name="unbind_note_set_bind">Android §6.2 / §22</string>
     <string name="unbind_note_local">App 本地持久化</string>
+
+    <string name="feature_section">设备功能</string>
+    <string name="feature_goals">目标设置</string>
+    <string name="feature_alarms">闹钟与提醒</string>
+    <string name="feature_notify">通知 / 来电 / 通讯录</string>
+    <string name="feature_result">结果</string>
+    <string name="feature_ready">就绪</string>
+    <string name="feature_success">成功</string>
+    <string name="feature_failed">失败: %1$s</string>
+
+    <string name="goals_get">读取目标</string>
+    <string name="goals_set_demo">写入示例目标</string>
+    <string name="goals_getting">正在读取目标…</string>
+    <string name="goals_setting">正在写入示例目标…</string>
+    <string name="goals_set_ok">示例目标已写入</string>
+    <string name="goals_step">步数: %1$d（协议百步=%2$d）</string>
+    <string name="goals_calorie">卡路里: %1$d 千卡</string>
+    <string name="goals_distance">距离: %1$d（公里/英里）</string>
+    <string name="goals_sleep">睡眠: %1$d 小时</string>
+    <string name="goals_duration">时长: %1$d 分钟</string>
+    <string name="goals_ot_km">OT 距离: %.1f 公里</string>
+    <string name="goals_ot_mile">OT 距离: %.1f 英里</string>
+
+    <string name="alarms_get">读取闹钟</string>
+    <string name="alarms_add_demo">添加示例闹钟（工作日 07:30）</string>
+    <string name="alarms_delete_all">删除全部闹钟</string>
+    <string name="alarms_getting">正在读取闹钟…</string>
+    <string name="alarms_adding">正在添加闹钟…</string>
+    <string name="alarms_deleting">正在删除闹钟…</string>
+    <string name="alarms_empty">暂无闹钟</string>
+    <string name="alarms_add_ok">闹钟已添加</string>
+    <string name="alarms_delete_all_ok">全部闹钟已删除</string>
+    <string name="alarms_demo_content">起床</string>
+    <string name="reminders_get_sedentary">读取久坐提醒</string>
+    <string name="reminders_set_sedentary">设置久坐提醒</string>
+    <string name="reminders_set_drink">设置喝水提醒</string>
+    <string name="reminders_set_wash">设置洗手提醒</string>
+    <string name="reminders_getting">正在读取提醒…</string>
+    <string name="reminders_setting">正在设置提醒…</string>
+    <string name="reminders_sedentary_ok">久坐提醒已设置（09:00–18:00 / 60 分钟）</string>
+    <string name="reminders_drink_ok">喝水提醒已设置（08:00–20:00 / 60 分钟）</string>
+    <string name="reminders_wash_ok">洗手提醒已设置（08:00–22:00 / 2 小时）</string>
+
+    <string name="notify_get_switches">读取通知开关</string>
+    <string name="notify_enable_switches">开启微信 / 短信 / 来电</string>
+    <string name="notify_push_message">推送示例短信</string>
+    <string name="notify_incoming_call">模拟来电</string>
+    <string name="notify_hang_up">挂断来电</string>
+    <string name="notify_get_contacts">读取通讯录</string>
+    <string name="notify_set_contacts">写入示例通讯录</string>
+    <string name="notify_set_emergency">设置紧急联系人</string>
+    <string name="notify_getting_switches">正在读取开关…</string>
+    <string name="notify_setting_switches">正在设置开关…</string>
+    <string name="notify_pushing">正在推送消息…</string>
+    <string name="notify_calling">正在发送来电…</string>
+    <string name="notify_hanging">正在挂断…</string>
+    <string name="notify_getting_contacts">正在读取通讯录…</string>
+    <string name="notify_setting_contacts">正在写入通讯录…</string>
+    <string name="notify_setting_emergency">正在设置紧急联系人…</string>
+    <string name="notify_switches_empty">暂无开关数据</string>
+    <string name="notify_switches_ok">开关已开启</string>
+    <string name="notify_demo_title">Demo</string>
+    <string name="notify_demo_content">来自 SDK Demo 的你好</string>
+    <string name="notify_push_ok">消息已推送</string>
+    <string name="notify_call_ok">来电: %1$s %2$s</string>
+    <string name="notify_hangup_ok">已挂断</string>
+    <string name="notify_contacts_empty">暂无通讯录</string>
+    <string name="notify_contacts_ok">示例通讯录已写入</string>
+    <string name="notify_emergency_ok">紧急联系人已设置（Emergency / 120）</string>
 </resources>
