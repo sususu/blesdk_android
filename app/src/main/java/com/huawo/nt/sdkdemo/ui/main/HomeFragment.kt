@@ -1,0 +1,170 @@
+package com.huawo.nt.sdkdemo.ui.main
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.huawo.nt.sdkdemo.R
+import com.huawo.nt.sdkdemo.data.model.BleDevice
+import com.huawo.nt.sdkdemo.data.model.DevicePhase
+import com.huawo.nt.sdkdemo.databinding.FragmentHomeBinding
+import com.huawo.nt.sdkdemo.ui.ViewModelFactory
+import com.huawo.nt.sdkdemo.ui.bind.BindFlowDialogFragment
+import com.huawo.nt.sdkdemo.ui.common.LogAdapter
+import com.huawo.nt.sdkdemo.ui.scan.ScanConnectFragment
+import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowDialogFragment
+import com.huawo.nt.sdkdemo.util.AppLanguage
+import com.huawo.nt.sdkdemo.util.LocaleHelper
+import kotlinx.coroutines.launch
+
+class HomeFragment : Fragment() {
+    private var _binding: FragmentHomeBinding? = null
+    private val binding get() = _binding!!
+
+    private val viewModel: HomeViewModel by activityViewModels { ViewModelFactory() }
+    private val logAdapter = LogAdapter()
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View {
+        _binding = FragmentHomeBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        binding.logList.layoutManager = LinearLayoutManager(requireContext())
+        binding.logList.adapter = logAdapter
+        setupLanguageMenu()
+
+        binding.btnScan.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, ScanConnectFragment())
+                .addToBackStack("scan")
+                .commit()
+        }
+        binding.btnBind.setOnClickListener {
+            if (viewModel.prepareBind()) {
+                BindFlowDialogFragment().show(parentFragmentManager, "bind")
+            }
+        }
+        binding.btnSync.setOnClickListener { viewModel.sync() }
+        binding.btnUnbind.setOnClickListener {
+            if (viewModel.prepareUnbind()) {
+                UnbindFlowDialogFragment().show(parentFragmentManager, "unbind")
+            }
+        }
+        binding.btnDisconnect.setOnClickListener { viewModel.disconnect() }
+
+        parentFragmentManager.setFragmentResultListener(
+            ScanConnectFragment.RESULT_KEY,
+            viewLifecycleOwner,
+        ) { _, bundle ->
+            val mac = bundle.getString(ScanConnectFragment.KEY_MAC).orEmpty()
+            if (mac.isNotEmpty()) {
+                viewModel.onDeviceConnected(
+                    BleDevice(
+                        name = bundle.getString(ScanConnectFragment.KEY_NAME),
+                        macAddress = mac,
+                        rssi = bundle.getInt(ScanConnectFragment.KEY_RSSI).takeIf { it != Int.MIN_VALUE },
+                    ),
+                )
+            }
+        }
+
+        parentFragmentManager.setFragmentResultListener(
+            BindFlowDialogFragment.RESULT_KEY,
+            viewLifecycleOwner,
+        ) { _, bundle ->
+            if (bundle.getBoolean(BindFlowDialogFragment.KEY_SUCCESS)) {
+                viewModel.onBindSuccess(BindFlowDialogFragment.readDeviceInfo(bundle))
+            } else {
+                viewModel.onBindCancelled()
+            }
+        }
+
+        parentFragmentManager.setFragmentResultListener(
+            UnbindFlowDialogFragment.RESULT_KEY,
+            viewLifecycleOwner,
+        ) { _, bundle ->
+            when {
+                bundle.getBoolean(UnbindFlowDialogFragment.KEY_SUCCESS) ->
+                    viewModel.onUnbindSuccess()
+                else ->
+                    viewModel.onUnbindCancelled(
+                        failed = bundle.getBoolean(UnbindFlowDialogFragment.KEY_FAILED),
+                    )
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state -> render(state) }
+            }
+        }
+    }
+
+    private fun setupLanguageMenu() {
+        binding.toolbar.inflateMenu(R.menu.menu_home)
+        binding.toolbar.setOnMenuItemClickListener { item ->
+            val language =
+                when (item.itemId) {
+                    R.id.lang_system -> AppLanguage.SYSTEM
+                    R.id.lang_zh -> AppLanguage.CHINESE
+                    R.id.lang_en -> AppLanguage.ENGLISH
+                    else -> return@setOnMenuItemClickListener false
+                }
+            val current = LocaleHelper.getLanguage(requireContext())
+            if (current == language) return@setOnMenuItemClickListener true
+            LocaleHelper.setLanguage(requireContext(), language)
+            requireActivity().recreate()
+            true
+        }
+    }
+
+    private fun render(state: HomeUiState) {
+        binding.statusText.text = state.status
+        binding.statusProgress.isVisible = state.busy
+        binding.statusIcon.isVisible = !state.busy
+        binding.toolbar.title = getString(R.string.app_name)
+        binding.toolbar.subtitle = state.sdkVersion?.let { "v$it" }
+
+        val device = state.device
+        binding.deviceCard.isVisible = device != null
+        if (device != null) {
+            binding.deviceName.text =
+                if (device.name.isNullOrBlank()) getString(R.string.unknown_device) else device.name
+            binding.deviceMac.text = device.macAddress
+            binding.deviceState.text =
+                if (state.bound) getString(R.string.bound) else getString(R.string.connected)
+        }
+
+        binding.syncSummary.isVisible = state.syncSummary.isNotBlank()
+        binding.syncSummary.text = state.syncSummary
+
+        val canBind = !state.busy && device != null && !state.bound
+        val canSync = !state.busy && (state.bound || state.phase == DevicePhase.CONNECTED)
+        val canUnbind = !state.busy && state.bound
+        binding.btnScan.isEnabled = !state.busy
+        binding.btnBind.isEnabled = canBind
+        binding.btnSync.isEnabled = canSync
+        binding.btnUnbind.isEnabled = canUnbind
+        binding.btnDisconnect.isEnabled = !state.busy && device != null
+
+        logAdapter.submit(state.logs)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}

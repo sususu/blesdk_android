@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Watch SDK Demo</string>
+    <string name="scan_connect">Scan &amp; Connect</string>
+    <string name="scan_connect_title">Scan &amp; Connect</string>
+    <string name="bind_watch">Bind Watch</string>
+    <string name="sync_data">Sync Data</string>
+    <string name="unbind_watch">Unbind Watch</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="logs">Logs</string>
+    <string name="start_scan">Start Scan</string>
+    <string name="stop_scan">Stop Scan</string>
+    <string name="connect">Connect</string>
+    <string name="confirm">Confirm</string>
+    <string name="close">Close</string>
+    <string name="binding_in_progress">Binding…</string>
+    <string name="unbinding_in_progress">Unbinding…</string>
+    <string name="permission_denied">Please grant Bluetooth and location permissions</string>
+    <string name="unknown_device">Unknown device</string>
+    <string name="bound">Bound</string>
+    <string name="connected">Connected</string>
+    <string name="no_devices">No devices</string>
+    <string name="searching">Searching nearby devices…</string>
+    <string name="language">Language</string>
+    <string name="language_system">System default</string>
+    <string name="language_zh">中文</string>
+    <string name="language_en">English</string>
+
+    <string name="status_uninitialized">Not initialized</string>
+    <string name="status_sdk_ready">SDK ready</string>
+    <string name="status_init_ok">Initialized, version %1$s, mtu=%2$d</string>
+    <string name="status_init_failed">Init failed: %1$s</string>
+    <string name="status_bound_local">Bound %1$s (from local)</string>
+    <string name="status_connected">Connected %1$s</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_bound_manual_disconnect">Bound (manually disconnected)</string>
+    <string name="status_bound_reconnect_pending">Bound (disconnected, reconnecting)</string>
+    <string name="status_bind_success">Bound successfully</string>
+    <string name="status_bind_incomplete">Binding incomplete</string>
+    <string name="status_unbound">Unbound</string>
+    <string name="status_unbind_incomplete">Unbinding incomplete</string>
+    <string name="status_unbind_cancelled">Unbinding cancelled</string>
+    <string name="status_need_connect_first">Please scan and connect a device first</string>
+    <string name="status_not_bound">No device is bound</string>
+    <string name="status_unbinding">Unbinding…</string>
+    <string name="status_syncing">Syncing data…</string>
+    <string name="status_sync_done">Sync completed</string>
+    <string name="status_sync_failed">Sync failed: %1$s</string>
+    <string name="status_disconnected_manual">Disconnected</string>
+    <string name="status_reconnecting">Reconnecting (%1$s)…</string>
+    <string name="status_reconnected">Reconnected %1$s</string>
+    <string name="status_reconnect_failed_retry">Reconnect failed, will retry</string>
+    <string name="status_scan_hint">Tap below to start scanning</string>
+    <string name="status_scanning">Scanning…</string>
+    <string name="status_scan_start_failed">Failed to start scan</string>
+    <string name="status_scan_finished">Scan finished, %1$d device(s)</string>
+    <string name="status_scan_failed">Scan failed: %1$s</string>
+    <string name="status_scan_stopped">Scan stopped</string>
+    <string name="status_connecting">Connecting %1$s…</string>
+    <string name="status_connect_failed">Connect failed: %1$s</string>
+
+    <string name="log_load_bound">Loaded local binding: %1$s</string>
+    <string name="log_local_device_info">Local device info: type=%1$s, fw=%2$s, proto=%3$s</string>
+    <string name="log_conn_connected">Connection event: connected</string>
+    <string name="log_conn_manual_disconnect">Connection event: manually disconnected</string>
+    <string name="log_conn_unexpected_disconnect">Connection event: unexpected disconnect</string>
+    <string name="log_connect_success">Connected: %1$s</string>
+    <string name="log_bound_saved">Saved binding locally: %1$s</string>
+    <string name="log_device_info">Device info: type=%1$s, fw=%2$s, proto=%3$s, bat=%4$s</string>
+    <string name="log_bind_done">Binding completed</string>
+    <string name="log_bind_incomplete">Binding incomplete</string>
+    <string name="log_bound_cleared">Cleared local binding</string>
+    <string name="log_unbind_done">Unbinding completed</string>
+    <string name="log_unbind_incomplete">Unbinding incomplete</string>
+    <string name="log_open_bind">Open bind flow</string>
+    <string name="log_open_unbind">Open unbind flow</string>
+    <string name="log_sync_start">Start syncing health data</string>
+    <string name="log_sync_done">Sync completed: %1$s</string>
+    <string name="log_sync_failed">Sync failed: %1$s</string>
+    <string name="log_manual_disconnect">Manually disconnected (no auto-reconnect)</string>
+    <string name="log_disconnect_failed">Disconnect failed: %1$s</string>
+    <string name="log_auto_reconnect_on">Auto-reconnect enabled (%1$s)</string>
+    <string name="log_auto_reconnect_off">Auto-reconnect stopped</string>
+    <string name="log_reconnect_start">Reconnecting: %1$s → %2$s</string>
+    <string name="log_reconnect_success">Reconnect succeeded</string>
+    <string name="log_reconnect_failed">Reconnect failed: %1$s</string>
+
+    <string name="reason_boot_restore">startup restore</string>
+    <string name="reason_reconnect">auto reconnect</string>
+    <string name="error_no_device_to_sync">No device to sync. Connect and bind first</string>
+    <string name="sync_summary">Activities %1$d (steps %2$d)\nHeart rates %3$d\nSleeps %4$d</string>
+
+    <string name="bind_subtitle">Follow SDK §6 pairing &amp; binding steps (Android)</string>
+    <string name="unbind_subtitle">Follow SDK unbind steps (Android)</string>
+    <string name="error_device_not_connected">Device not connected. Scan and connect first</string>
+    <string name="detail_paired">Paired</string>
+    <string name="detail_not_paired">Not paired</string>
+    <string name="detail_skip_create_bond">Already paired, skip createBond</string>
+    <string name="detail_fetched">Fetched</string>
+    <string name="detail_skipped_fail">Failed and skipped: %1$s</string>
+
+    <string name="bind_step_start">Standard bind (confirm on watch)</string>
+    <string name="bind_step_time">Sync time to watch</string>
+    <string name="bind_step_user">Sync user info</string>
+    <string name="bind_step_unit">Sync unit (metric)</string>
+    <string name="bind_step_language">Sync language</string>
+    <string name="bind_step_device_info">Get device info</string>
+    <string name="bind_step_end">End bind flow</string>
+    <string name="bind_step_is_bonded">Check classic BT pairing</string>
+    <string name="bind_step_create_bond">Create classic BT bond</string>
+    <string name="bind_step_set_bind">Set SDK bind flag</string>
+    <string name="bind_note_62">Android §6.2</string>
+    <string name="bind_note_env">Post-bind environment sync</string>
+    <string name="bind_note_save_local">Fetch after bind, then save locally</string>
+    <string name="bind_note_61">Android §6.1</string>
+    <string name="bind_note_61_skip">Android §6.1 · skip if already paired</string>
+    <string name="bind_note_set_bind">Android §6.2 · used by SDK reconnect logic</string>
+
+    <string name="unbind_step_remove_bond">Remove classic BT bond</string>
+    <string name="unbind_step_disconnect">Disconnect BLE</string>
+    <string name="unbind_step_set_bind">Clear SDK bind flag</string>
+    <string name="unbind_step_clear_local">Clear app binding data</string>
+    <string name="unbind_note_remove_bond">Android §6.1 · no BLE required</string>
+    <string name="unbind_note_disconnect">Android unbind §22</string>
+    <string name="unbind_note_set_bind">Android §6.2 / §22</string>
+    <string name="unbind_note_local">App local persistence</string>
+</resources>
