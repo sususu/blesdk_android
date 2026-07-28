@@ -24,6 +24,7 @@ import com.huawo.nt.sdkdemo.ui.features.AlbumTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.GoalsFragment
 import com.huawo.nt.sdkdemo.ui.features.MusicTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.NotifyFragment
+import com.huawo.nt.sdkdemo.ui.features.OtaUpgradeFragment
 import com.huawo.nt.sdkdemo.ui.scan.ScanConnectFragment
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowDialogFragment
 import com.huawo.nt.sdkdemo.util.AppLanguage
@@ -87,6 +88,9 @@ class HomeFragment : Fragment() {
         }
         binding.btnAgps.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(AgpsUpdateFragment())
+        }
+        binding.btnOta.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(OtaUpgradeFragment())
         }
 
         parentFragmentManager.setFragmentResultListener(
@@ -191,6 +195,7 @@ class HomeFragment : Fragment() {
         binding.btnMusic.isEnabled = canFeature
         binding.btnAlbum.isEnabled = canFeature
         binding.btnAgps.isEnabled = canFeature
+        binding.btnOta.isEnabled = canFeature
 
         logAdapter.submit(state.logs)
     }

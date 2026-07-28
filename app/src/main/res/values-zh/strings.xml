@@ -132,6 +132,7 @@
     <string name="feature_music">音乐文件推送</string>
     <string name="feature_album">相册文件推送</string>
     <string name="feature_agps">AGPS 更新</string>
+    <string name="feature_ota">OTA</string>
     <string name="feature_agps_hint">下载 7 天芯与物 AGPS，生成 zip 并推送到手表。</string>
     <string name="agps_start">下载并推送</string>
     <string name="agps_cancel">取消</string>
@@ -157,6 +158,48 @@
     <string name="agps_log_push_start">开始 Sifli syncZipFile（type=3）</string>
     <string name="agps_log_push_ready">Sifli 就绪，开始传输…</string>
     <string name="agps_log_push_ok">AGPS 推送成功</string>
+    <string name="ota_refresh">刷新</string>
+    <string name="ota_check">检查升级</string>
+    <string name="ota_start">开始升级</string>
+    <string name="ota_logs">日志</string>
+    <string name="ota_clear_logs">清空</string>
+    <string name="ota_mac">MAC: %1$s</string>
+    <string name="ota_firmware">固件版本: %1$s</string>
+    <string name="ota_refreshing">正在刷新设备信息…</string>
+    <string name="ota_refresh_ok">设备信息已更新</string>
+    <string name="ota_checking">正在检查升级…</string>
+    <string name="ota_check_ok">已获取升级包信息</string>
+    <string name="ota_check_empty">服务器未返回固件包</string>
+    <string name="ota_need_mac">缺少 MAC，请先连接并刷新</string>
+    <string name="ota_need_firmware">缺少固件版本，请先连接并刷新</string>
+    <string name="ota_need_product_code">缺少产品型号，请先连接并刷新</string>
+    <string name="ota_need_check_first">请先检查升级</string>
+    <string name="ota_starting">开始 OTA…</string>
+    <string name="ota_success">OTA 成功，设备可能重启</string>
+    <string name="ota_new_version">新版本: %1$s</string>
+    <string name="ota_new_version_arrow">→ %1$s</string>
+    <string name="ota_files_count">固件文件数: %1$d</string>
+    <string name="ota_diff_resource">含差分资源包</string>
+    <string name="ota_battery_low">电量过低（%1$d%%），请充电至 ≥30%%</string>
+    <string name="ota_status_not_ready">设备升级状态为 %1$s，请稍后再试</string>
+    <string name="ota_phase_prepare">准备</string>
+    <string name="ota_phase_download">下载</string>
+    <string name="ota_phase_push">推送到手表</string>
+    <string name="ota_phase_done">完成</string>
+    <string name="ota_log_device">设备 MAC=%1$s FW=%2$s</string>
+    <string name="ota_log_check_start">检查升级 mac=%1$s fw=%2$s</string>
+    <string name="ota_log_check_ok">服务器包 version=%1$s files=%2$d</string>
+    <string name="ota_log_start">开始 OTA version=%1$s</string>
+    <string name="ota_log_battery">电量 %1$d%%</string>
+    <string name="ota_log_upgrade_status">升级状态: %1$s</string>
+    <string name="ota_log_download">下载 [%1$d] %2$s</string>
+    <string name="ota_log_download_ok">已下载 %1$s（%2$d 字节）</string>
+    <string name="ota_log_channel_sifli">通道: Sifli DFU</string>
+    <string name="ota_log_channel_wl">通道: WL OTA</string>
+    <string name="ota_log_channel_generic">通道: 通用 OTA</string>
+    <string name="ota_log_dfu_images">已组装 DFU 镜像: %1$d</string>
+    <string name="ota_log_push_ready">OTA 就绪，开始传输…</string>
+    <string name="ota_log_success">OTA 传输完成</string>
     <string name="feature_result">结果</string>
     <string name="feature_ready">就绪</string>
     <string name="feature_success">成功</string>

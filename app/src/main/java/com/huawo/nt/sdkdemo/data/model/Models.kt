@@ -154,6 +154,41 @@ data class FlowStep(
     var detail: String? = null,
 )
 
+/** Server firmware-check response (aligned with DeviceUpgradeInfo / api/v1/devices/upgrades). */
+data class OtaUpgradeInfo(
+    val version: String? = null,
+    val build: Long? = null,
+    val forceUpdate: Boolean = false,
+    val updateContent: String? = null,
+    val firmwares: List<OtaFirmwareItem> = emptyList(),
+    /** Diff-mode resource package; required when zip contains `diff_ctrl*.bin`. */
+    val resource: OtaResourceItem? = null,
+)
+
+data class OtaFirmwareItem(
+    val url: String,
+    val md5: String? = null,
+    val name: String? = null,
+    val id: String? = null,
+    /** Maps to OtaDataType for non-Sifli paths; Sifli only uses firmwares[0]. */
+    val type: Int = 0x01,
+)
+
+data class OtaResourceItem(
+    val name: String? = null,
+    val url: String? = null,
+    val md5: String? = null,
+    val fromVersion: String? = null,
+    val toVersion: String? = null,
+)
+
+interface OtaTransferCallback {
+    fun onReady()
+    fun onProgress(progress: Float)
+    fun onSuccess()
+    fun onFail(code: Int, message: String)
+}
+
 sealed class ConnectionEvent {
     data class Connected(val deviceName: String?, val macAddress: String?) : ConnectionEvent()
     data object Disconnected : ConnectionEvent()

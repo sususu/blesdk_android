@@ -12,6 +12,7 @@ import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateViewModel
 import com.huawo.nt.sdkdemo.ui.features.GoalsViewModel
 import com.huawo.nt.sdkdemo.ui.features.MusicTransferViewModel
 import com.huawo.nt.sdkdemo.ui.features.NotifyViewModel
+import com.huawo.nt.sdkdemo.ui.features.OtaUpgradeViewModel
 import com.huawo.nt.sdkdemo.ui.main.HomeViewModel
 import com.huawo.nt.sdkdemo.ui.scan.ScanViewModel
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowViewModel
@@ -43,6 +44,8 @@ class ViewModelFactory(
                 AlbumTransferViewModel(application, repository) as T
             modelClass.isAssignableFrom(AgpsUpdateViewModel::class.java) ->
                 AgpsUpdateViewModel(application, repository) as T
+            modelClass.isAssignableFrom(OtaUpgradeViewModel::class.java) ->
+                OtaUpgradeViewModel(application, repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
         }
     }

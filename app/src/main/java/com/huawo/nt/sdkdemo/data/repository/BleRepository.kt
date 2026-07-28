@@ -17,6 +17,7 @@ import com.huawo.nt.sdkdemo.data.model.AlbumPhotoItem
 import com.huawo.nt.sdkdemo.data.model.AlbumTransferCallback
 import com.huawo.nt.sdkdemo.data.model.AgpsTransferCallback
 import com.huawo.nt.sdkdemo.data.model.BleGpsStatus
+import com.huawo.nt.sdkdemo.data.model.OtaTransferCallback
 import com.huawo.nt.sdkdemo.data.model.MusicStorage
 import com.huawo.nt.sdkdemo.data.model.MusicTransferCallback
 import com.huawo.nt.sdkdemo.data.model.ScanEvent
@@ -27,6 +28,7 @@ import com.huawo.nt.sdkdemo.util.awaitBoolValue
 import com.huawo.nt.sdkdemo.util.awaitCreateBond
 import com.huawo.nt.sdkdemo.util.awaitIntValue
 import com.huawo.nt.sdkdemo.util.awaitRemoveBond
+import com.huawo.nt.sdkdemo.util.awaitStringValue
 import com.huawo.nt.sdkdemo.util.awaitVoid
 import com.huawo.sdk.bluetoothsdk.BluetoothSDK
 import com.huawo.sdk.bluetoothsdk.callback.ConnectCallback
@@ -49,8 +51,13 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.SedentaryReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SleepsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SocialAppSwitchesCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SportsCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.UpgradeStatusCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.WashHandReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.ota.OtaCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.ota.OtaData
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.UpgradeStatus
+import com.huawo.sdk.bluetoothsdk.wl.ota.WlOtaCallback
+import com.huawo.sdk.bluetoothsdk.wl.ota.WlOtaManager
 import com.huawo.watchface.Callback as SifliCallback
 import com.huawo.watchface.SifliWatchSDK
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.GetActivityNum
@@ -1269,6 +1276,103 @@ class BleRepository(private val application: Application) {
         if (SifliWatchSDK.getInstance().isWorking) {
             runCatching { SifliWatchSDK.getInstance().stop() }
         }
+    }
+
+    // endregion
+
+    // region §17 OTA firmware upgrade
+
+    fun isWlProtocol(): Boolean = BluetoothSDK.isWlProtocol()
+
+    fun connectedDeviceMac(): String? = connectedMacOrNull()
+
+    suspend fun getFirmwareVersion(): String =
+        awaitStringValue("getFirmwareVersion failed") { BluetoothSDK.getFirmwareVersion(it) }
+
+    suspend fun getBattery(): Int =
+        awaitIntValue("getBattery failed") { BluetoothSDK.getBattery(it) }
+
+    suspend fun getDeviceUpgradeStatus(): UpgradeStatus =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getDeviceUpgradeStatus(
+                object : UpgradeStatusCallback() {
+                    override fun onSuccess(status: UpgradeStatus) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(status)
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(
+                                    SdkException(code, "getDeviceUpgradeStatus failed"),
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    /**
+     * Generic OTA (non-WL). [otaList] items must already include address header bytes if required.
+     */
+    fun startOta(otaList: List<OtaData>, callback: OtaTransferCallback) {
+        if (otaList.isEmpty()) {
+            callback.onFail(-3, "OTA data empty")
+            return
+        }
+        BluetoothSDK.ota(
+            otaList,
+            object : OtaCallback() {
+                override fun onReady() {
+                    mainHandler.post { callback.onReady() }
+                }
+
+                override fun onUpload(progress: Float) {
+                    mainHandler.post { callback.onProgress(progress) }
+                }
+
+                override fun onSuccess() {
+                    mainHandler.post { callback.onSuccess() }
+                }
+
+                override fun onFail(code: Int) {
+                    mainHandler.post { callback.onFail(code, "OTA failed") }
+                }
+            },
+        )
+    }
+
+    /** WL protocol OTA via local file path. */
+    fun startWlOta(filePath: String, callback: OtaTransferCallback) {
+        BluetoothSDK.starWlOta(
+            filePath,
+            object : WlOtaCallback {
+                override fun onReady() {
+                    mainHandler.post { callback.onReady() }
+                }
+
+                override fun onProgress(progress: Float) {
+                    mainHandler.post { callback.onProgress(progress) }
+                }
+
+                override fun onSuccess() {
+                    mainHandler.post { callback.onSuccess() }
+                }
+
+                override fun onFail(code: Int, message: String?) {
+                    mainHandler.post {
+                        callback.onFail(code, message ?: "WL OTA failed")
+                    }
+                }
+            },
+        )
+    }
+
+    fun forceResetWlOta() {
+        runCatching { WlOtaManager.forceReset() }
     }
 
     // endregion

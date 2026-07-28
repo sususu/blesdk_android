@@ -132,6 +132,7 @@
     <string name="feature_music">Music File Push</string>
     <string name="feature_album">Album File Push</string>
     <string name="feature_agps">AGPS Update</string>
+    <string name="feature_ota">OTA</string>
     <string name="feature_agps_hint">Download 7-day XYW AGPS, build zip, and push to the watch.</string>
     <string name="agps_start">Download &amp; Push</string>
     <string name="agps_cancel">Cancel</string>
@@ -157,6 +158,48 @@
     <string name="agps_log_push_start">Start Sifli syncZipFile (type=3)</string>
     <string name="agps_log_push_ready">Sifli ready, transferring…</string>
     <string name="agps_log_push_ok">AGPS push succeeded</string>
+    <string name="ota_refresh">Refresh</string>
+    <string name="ota_check">Check update</string>
+    <string name="ota_start">Start upgrade</string>
+    <string name="ota_logs">Logs</string>
+    <string name="ota_clear_logs">Clear</string>
+    <string name="ota_mac">MAC: %1$s</string>
+    <string name="ota_firmware">Firmware: %1$s</string>
+    <string name="ota_refreshing">Refreshing device info…</string>
+    <string name="ota_refresh_ok">Device info updated</string>
+    <string name="ota_checking">Checking for firmware update…</string>
+    <string name="ota_check_ok">Update package available</string>
+    <string name="ota_check_empty">No firmware package in server response</string>
+    <string name="ota_need_mac">MAC unavailable; connect and refresh first</string>
+    <string name="ota_need_firmware">Firmware version unavailable; connect and refresh first</string>
+    <string name="ota_need_product_code">Product code unavailable; connect and refresh first</string>
+    <string name="ota_need_check_first">Check update first</string>
+    <string name="ota_starting">Starting OTA…</string>
+    <string name="ota_success">OTA succeeded; device may reboot</string>
+    <string name="ota_new_version">New version: %1$s</string>
+    <string name="ota_new_version_arrow">→ %1$s</string>
+    <string name="ota_files_count">Firmware files: %1$d</string>
+    <string name="ota_diff_resource">Diff resource package included</string>
+    <string name="ota_battery_low">Battery too low (%1$d%%), charge to ≥30%%</string>
+    <string name="ota_status_not_ready">Device upgrade status is %1$s; try later</string>
+    <string name="ota_phase_prepare">Prepare</string>
+    <string name="ota_phase_download">Download</string>
+    <string name="ota_phase_push">Push to watch</string>
+    <string name="ota_phase_done">Done</string>
+    <string name="ota_log_device">Device MAC=%1$s FW=%2$s</string>
+    <string name="ota_log_check_start">Check update mac=%1$s fw=%2$s</string>
+    <string name="ota_log_check_ok">Server package version=%1$s files=%2$d</string>
+    <string name="ota_log_start">Start OTA version=%1$s</string>
+    <string name="ota_log_battery">Battery %1$d%%</string>
+    <string name="ota_log_upgrade_status">Upgrade status: %1$s</string>
+    <string name="ota_log_download">Download [%1$d] %2$s</string>
+    <string name="ota_log_download_ok">Downloaded %1$s (%2$d bytes)</string>
+    <string name="ota_log_channel_sifli">Channel: Sifli DFU</string>
+    <string name="ota_log_channel_wl">Channel: WL OTA</string>
+    <string name="ota_log_channel_generic">Channel: generic OTA</string>
+    <string name="ota_log_dfu_images">Prepared DFU images: %1$d</string>
+    <string name="ota_log_push_ready">OTA ready, transferring…</string>
+    <string name="ota_log_success">OTA transfer finished</string>
     <string name="feature_result">Result</string>
     <string name="feature_ready">Ready</string>
     <string name="feature_success">Success</string>

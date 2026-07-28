@@ -6,6 +6,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.BoolValueCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.CreateBondCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntValueCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.RemoveBondCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.StringValueCallback
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -48,6 +49,22 @@ suspend fun awaitIntValue(failMessage: String, block: (IntValueCallback) -> Unit
             object : IntValueCallback() {
                 override fun onSuccess(value: Int) {
                     if (cont.isActive) cont.resume(value)
+                }
+
+                override fun onFail(code: Int) {
+                    if (cont.isActive) cont.resumeWithException(SdkException(code, failMessage))
+                }
+            },
+        )
+    }
+}
+
+suspend fun awaitStringValue(failMessage: String, block: (StringValueCallback) -> Unit): String {
+    return suspendCancellableCoroutine { cont ->
+        block(
+            object : StringValueCallback() {
+                override fun onSuccess(value: String?) {
+                    if (cont.isActive) cont.resume(value.orEmpty())
                 }
 
                 override fun onFail(code: Int) {
