@@ -1281,9 +1281,15 @@ class BleRepository(private val application: Application) {
     // endregion
 
     // region §17 OTA firmware upgrade
+    //
+    // SDK wrappers used by the OTA page for pre-checks and alternate channels.
+    // This demo's primary upgrade path is Sifli DFU (see OtaUpgradeViewModel +
+    // SifliOtaHelper); [startOta] / [startWlOta] remain available for non-Sifli devices.
 
+    /** True when the connected device speaks WL protocol (use [startWlOta]). */
     fun isWlProtocol(): Boolean = BluetoothSDK.isWlProtocol()
 
+    /** Prefer BLE connected MAC; fall back to locally bound record. */
     fun connectedDeviceMac(): String? = connectedMacOrNull()
 
     suspend fun getFirmwareVersion(): String =
@@ -1292,6 +1298,10 @@ class BleRepository(private val application: Application) {
     suspend fun getBattery(): Int =
         awaitIntValue("getBattery failed") { BluetoothSDK.getBattery(it) }
 
+    /**
+     * Query device upgrade state before starting OTA.
+     * Only [UpgradeStatus.Normal] should proceed; Recovering / WaitOta / OTAing → wait.
+     */
     suspend fun getDeviceUpgradeStatus(): UpgradeStatus =
         suspendCancellableCoroutine { cont ->
             BluetoothSDK.getDeviceUpgradeStatus(
@@ -1316,7 +1326,8 @@ class BleRepository(private val application: Application) {
         }
 
     /**
-     * Generic OTA (non-WL). [otaList] items must already include address header bytes if required.
+     * Generic (non-WL, non-Sifli) multi-file OTA.
+     * [otaList] items must already include address header bytes if the bin format requires them.
      */
     fun startOta(otaList: List<OtaData>, callback: OtaTransferCallback) {
         if (otaList.isEmpty()) {
@@ -1345,7 +1356,7 @@ class BleRepository(private val application: Application) {
         )
     }
 
-    /** WL protocol OTA via local file path. */
+    /** WL protocol OTA via a local firmware file path. */
     fun startWlOta(filePath: String, callback: OtaTransferCallback) {
         BluetoothSDK.starWlOta(
             filePath,
@@ -1371,6 +1382,7 @@ class BleRepository(private val application: Application) {
         )
     }
 
+    /** Clear WL OTA session (call when leaving the upgrade page as a safety net). */
     fun forceResetWlOta() {
         runCatching { WlOtaManager.forceReset() }
     }

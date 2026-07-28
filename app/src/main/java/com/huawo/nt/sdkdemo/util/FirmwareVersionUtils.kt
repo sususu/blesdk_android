@@ -3,8 +3,15 @@ package com.huawo.nt.sdkdemo.util
 import java.util.regex.Pattern
 
 /**
- * Parses firmware strings shaped like `V…R…T…H…B{digits}…`
- * into major version (V) and build number (B).
+ * Parse / compare watch firmware version strings.
+ *
+ * Device firmware is typically shaped like:
+ * `V{major}R{…}T{…}H{…}B{build}…`
+ * e.g. `V1.0.0RxxxTxxxHxxxB123`
+ *
+ * Used by OTA check:
+ * - Extract `V` / `B` for the server request body (`currentVersion` / `currentBuild`).
+ * - Decide whether the server package is newer ([canUpgrade]).
  */
 object FirmwareVersionUtils {
     private val PATTERN: Pattern =
@@ -19,6 +26,7 @@ object FirmwareVersionUtils {
         }
     }
 
+    /** Major version segment after `V` (group 1). */
     fun extractV(str: String?): String {
         if (str.isNullOrBlank()) return ""
         return extract(str, 1).orEmpty()
@@ -30,6 +38,7 @@ object FirmwareVersionUtils {
 
     fun extractH(str: String?): String? = extract(str, 4)
 
+    /** Build number after `B` (group 5), as Long. */
     fun extractB(str: String?): Long? {
         val s = extract(str, 5) ?: return null
         return s.toLongOrNull()
@@ -71,8 +80,12 @@ object FirmwareVersionUtils {
     }
 
     /**
-     * Whether [destVersion]/[destBuild] is newer than [currentVersion]/[currentBuild].
-     * When major versions are semantically equal, only build is compared.
+     * Whether destination package [destVersion]/[destBuild] is newer than
+     * [currentVersion]/[currentBuild].
+     *
+     * Rules:
+     * - If major versions are semantically equal → compare build only.
+     * - Otherwise compare major segments left-to-right numerically.
      */
     fun canUpgrade(
         currentVersion: String?,

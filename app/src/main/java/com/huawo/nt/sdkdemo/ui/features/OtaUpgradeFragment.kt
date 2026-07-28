@@ -26,6 +26,17 @@ import com.sifli.siflidfu.Protocol
 import com.sifli.siflidfu.SifliDFUService
 import kotlinx.coroutines.launch
 
+/**
+ * OTA screen UI.
+ *
+ * Responsibilities:
+ * - Bind [OtaUpgradeViewModel] state (device info, check result, progress, logs).
+ * - On [OtaUpgradeViewModel.sifliDfuStart]: register Sifli DFU LocalBroadcast receiver,
+ *   then start [SifliDFUService.startActionDFUNand] (1.5s delay matches production).
+ * - Forward DFU progress / log / exit result back into the ViewModel.
+ *
+ * Back navigation is blocked while [OtaUpgradeUiState.busy] to avoid leaving mid-OTA.
+ */
 class OtaUpgradeFragment : Fragment() {
     private var _binding: FragmentOtaUpgradeBinding? = null
     private val binding get() = _binding!!
@@ -48,6 +59,7 @@ class OtaUpgradeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.toolbar.setNavigationOnClickListener {
+            // Do not pop while download/DFU is running.
             if (!viewModel.uiState.value.busy) {
                 parentFragmentManager.popBackStack()
             }
@@ -66,6 +78,7 @@ class OtaUpgradeFragment : Fragment() {
                     viewModel.uiState.collect { state -> bindState(state) }
                 }
                 launch {
+                    // ViewModel emits after images are prepared; Fragment owns DFU service lifecycle.
                     viewModel.sifliDfuStart.collect { event -> startSifliDfu(event) }
                 }
             }
@@ -92,6 +105,7 @@ class OtaUpgradeFragment : Fragment() {
         val idle = !state.busy
         binding.btnRefresh.isEnabled = idle
         binding.btnCheck.isEnabled = idle
+        // Start stays disabled until check finds a newer package.
         binding.btnStart.isEnabled = idle && state.hasUpgradePackage
         binding.btnClearLogs.isEnabled = idle
 
@@ -99,9 +113,12 @@ class OtaUpgradeFragment : Fragment() {
         logAdapter.submit(state.logs)
     }
 
+    /**
+     * Register DFU broadcasts first, then start NAND DFU after a short delay so the
+     * receiver is ready (same timing as HaWoFit WatchUpgradeNewActivity).
+     */
     private fun startSifliDfu(event: SifliDfuStartEvent) {
         registerDfuReceiver()
-        // Delay so LocalBroadcast is ready (same as WatchUpgradeNewActivity)
         mainHandler.postDelayed({
             if (!isAdded) return@postDelayed
             try {
@@ -119,6 +136,12 @@ class OtaUpgradeFragment : Fragment() {
         }, 1500L)
     }
 
+    /**
+     * Listen for Sifli DFU LocalBroadcasts:
+     * - PROGRESS → overall bar 40..100
+     * - LOG → append to UI log list
+     * - STATE EXIT → success (result==0, delayed) or failure
+     */
     private fun registerDfuReceiver() {
         if (dfuReceiver != null) return
         val receiver =
@@ -130,6 +153,7 @@ class OtaUpgradeFragment : Fragment() {
                         SifliDFUService.BROADCAST_DFU_PROGRESS -> {
                             val progress = intent.getIntExtra(SifliDFUService.EXTRA_DFU_PROGRESS, 0)
                             val progressFloat = progress / 100f
+                            // Deduplicate identical progress ticks.
                             if (lastProgress == progressFloat) return
                             lastProgress = progressFloat
                             viewModel.onDfuProgress(progress)
@@ -145,6 +169,7 @@ class OtaUpgradeFragment : Fragment() {
                             if (dfuState == Protocol.DFU_SERVICE_EXIT) {
                                 unregisterDfuReceiver()
                                 if (result == 0) {
+                                    // Delay success UI so the device can settle / reboot.
                                     mainHandler.postDelayed({
                                         if (isAdded) viewModel.onDfuSuccess()
                                     }, 3000L)
@@ -177,6 +202,7 @@ class OtaUpgradeFragment : Fragment() {
         dfuReceiver = null
     }
 
+    /** Keep screen awake during download / DFU so the process is not interrupted. */
     private fun keepScreenOn(keep: Boolean) {
         activity?.window?.let { window ->
             if (keep) {

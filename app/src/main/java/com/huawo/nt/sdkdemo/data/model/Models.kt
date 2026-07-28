@@ -154,17 +154,25 @@ data class FlowStep(
     var detail: String? = null,
 )
 
-/** Server firmware-check response (aligned with DeviceUpgradeInfo / api/v1/devices/upgrades). */
+/**
+ * Server firmware-check payload (`api/v1/devices/upgrades` data object).
+ *
+ * Used after [com.huawo.nt.sdkdemo.data.remote.OtaFirmwareApi.checkUpgrade]:
+ * - Compare [version]/[build] against the watch via [FirmwareVersionUtils.canUpgrade].
+ * - Sifli path consumes [firmwares].first() (+ optional [resource] for diff OTA).
+ */
 data class OtaUpgradeInfo(
     val version: String? = null,
     val build: Long? = null,
     val forceUpdate: Boolean = false,
     val updateContent: String? = null,
+    /** Main firmware files; Sifli path uses only the first entry. */
     val firmwares: List<OtaFirmwareItem> = emptyList(),
     /** Diff-mode resource package; required when zip contains `diff_ctrl*.bin`. */
     val resource: OtaResourceItem? = null,
 )
 
+/** One downloadable firmware blob from the check-upgrade response. */
 data class OtaFirmwareItem(
     val url: String,
     val md5: String? = null,
@@ -174,6 +182,7 @@ data class OtaFirmwareItem(
     val type: Int = 0x01,
 )
 
+/** Optional diff resource referenced by [OtaUpgradeInfo.resource]. */
 data class OtaResourceItem(
     val name: String? = null,
     val url: String? = null,
@@ -182,6 +191,7 @@ data class OtaResourceItem(
     val toVersion: String? = null,
 )
 
+/** Progress callbacks for generic / WL OTA transfer (delivered on the main thread). */
 interface OtaTransferCallback {
     fun onReady()
     fun onProgress(progress: Float)

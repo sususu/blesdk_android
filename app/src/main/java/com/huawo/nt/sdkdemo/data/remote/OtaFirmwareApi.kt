@@ -16,10 +16,29 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * OTA check / download against Huawo test server.
+ * Server-side OTA helpers: check for updates + download firmware / resource files.
  *
- * Check: `POST {BASE_URL}api/v1/devices/upgrades`
- * Relative firmware/resource URLs are resolved with [FILE_BASE_URL].
+ * ## Check-upgrade API
+ *
+ * - Method / path: `POST {BASE_URL}api/v1/devices/upgrades`
+ * - JSON body fields:
+ *   - `currentVersion`  – major version extracted from device FW (`V…`)
+ *   - `currentBuild`    – build number extracted from device FW (`B…`)
+ *   - `productCode`     – device type / product code
+ *   - `customerCode`    – fixed [CUSTOMER_CODE]
+ *   - `deviceId`        – device id from [BleDeviceInfo]
+ * - Request headers (required by server):
+ *   - `appId`      – application package name
+ *   - `appVersion` – application `versionName`
+ *
+ * ## Response
+ *
+ * Expects `{ ok: true, data: { version, build, firmwares[], resource? } }`.
+ * Relative file paths in `firmwares[].url` / `resource.url` are resolved with [FILE_BASE_URL].
+ *
+ * ## Download
+ *
+ * [downloadToCache] writes under app cache, optionally verifies MD5, and reports 0..100 progress.
  */
 object OtaFirmwareApi {
     private const val TAG = "OtaFirmwareApi"
@@ -31,11 +50,15 @@ object OtaFirmwareApi {
     private const val CHECK_PATH = "api/v1/devices/upgrades"
 
     /**
-     * @param currentFirmwareRaw raw device firmware string (V…R…T…H…B…)
+     * Query the upgrade server for a firmware package matching this device.
+     *
+     * @param context used only to read packageName / versionName for request headers
+     * @param currentFirmwareRaw raw device firmware string (`V…R…T…H…B…`)
      * @param productCode device type / product code
      * @param deviceId device id from [com.huawo.nt.sdkdemo.data.model.BleDeviceInfo.id]
      */
     fun checkUpgrade(
+        context: Context,
         currentFirmwareRaw: String,
         productCode: String,
         deviceId: String,
@@ -57,13 +80,14 @@ object OtaFirmwareApi {
             }
         Log.i(TAG, "checkUpgrade url=$url")
         Log.i(TAG, "checkUpgrade params=$body")
-        val response = httpPostJson(url, body.toString())
+        val response = httpPostJson(context, url, body.toString())
         Log.i(TAG, "checkUpgrade response=$response")
         return parseUpgradeResponse(response)
     }
 
     /**
-     * Whether [info] is a usable newer package vs current firmware.
+     * Whether [info] is a usable newer package vs the watch's current firmware.
+     * Requires non-empty [OtaUpgradeInfo.firmwares] and comparable V/B on both sides.
      */
     fun isNewerThan(info: OtaUpgradeInfo, currentFirmwareRaw: String): Boolean {
         if (info.firmwares.isEmpty()) return false
@@ -74,11 +98,16 @@ object OtaFirmwareApi {
         return FirmwareVersionUtils.canUpgrade(curV, curB, destV, destB)
     }
 
+    /** Absolute http(s) URL as-is; otherwise prepend [FILE_BASE_URL]. */
     fun resolveFileUrl(path: String?): String {
         if (path.isNullOrBlank()) return ""
         return if (path.lowercase().startsWith("http")) path else FILE_BASE_URL + path
     }
 
+    /**
+     * Download [url] into `cacheDir/[subDir]/[fileName]`, verify [expectMd5] when set.
+     * [onProgress] reports 0..100 for this single file.
+     */
     fun downloadToCache(
         context: Context,
         url: String,
@@ -100,6 +129,7 @@ object OtaFirmwareApi {
         return out
     }
 
+    /** Convenience wrapper: cache under `device/qjs`, file name prefers md5. */
     fun downloadFirmware(
         context: Context,
         item: OtaFirmwareItem,
@@ -118,6 +148,7 @@ object OtaFirmwareApi {
         )
     }
 
+    /** Parse Huawo envelope `{ ok|code, msg, data }`. */
     fun parseUpgradeResponse(json: String): OtaUpgradeInfo {
         val root = JSONObject(json)
         val ok = root.optBoolean("ok", root.optInt("code", -1) == 0)
@@ -129,6 +160,7 @@ object OtaFirmwareApi {
         return parseUpgradeInfoObject(data)
     }
 
+    /** Parse a bare upgrade-info object, optionally wrapped in `data` / `result`. */
     fun parseUpgradeInfo(json: String): OtaUpgradeInfo {
         val root = JSONObject(json)
         val obj =
@@ -141,6 +173,10 @@ object OtaFirmwareApi {
         return parseUpgradeInfoObject(obj)
     }
 
+    /**
+     * Map JSON fields into [OtaUpgradeInfo].
+     * Accepts several alternate array / field names for compatibility.
+     */
     private fun parseUpgradeInfoObject(obj: JSONObject): OtaUpgradeInfo {
         val firmwares = ArrayList<OtaFirmwareItem>()
         val arr: JSONArray? =
@@ -167,6 +203,7 @@ object OtaFirmwareApi {
             }
         }
 
+        // Diff-mode optional resource package (required when zip has diff_ctrl*.bin).
         val resourceObj = obj.optJSONObject("resource")
         val resource =
             resourceObj?.let {
@@ -199,7 +236,8 @@ object OtaFirmwareApi {
         )
     }
 
-    private fun httpPostJson(url: String, jsonBody: String): String {
+    /** POST JSON with app identity headers. */
+    private fun httpPostJson(context: Context, url: String, jsonBody: String): String {
         val conn =
             (URL(url).openConnection() as HttpURLConnection).apply {
                 connectTimeout = 15_000
@@ -209,6 +247,7 @@ object OtaFirmwareApi {
                 instanceFollowRedirects = true
                 setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 setRequestProperty("Accept", "application/json")
+                applyAppHeaders(context)
             }
         try {
             conn.outputStream.use { it.write(jsonBody.toByteArray(Charsets.UTF_8)) }
@@ -227,6 +266,18 @@ object OtaFirmwareApi {
         } finally {
             conn.disconnect()
         }
+    }
+
+    /** Attach `appId` (packageName) and `appVersion` (versionName) headers. */
+    private fun HttpURLConnection.applyAppHeaders(context: Context) {
+        val appId = context.packageName
+        val appVersion =
+            runCatching {
+                context.packageManager.getPackageInfo(appId, 0).versionName.orEmpty()
+            }.getOrDefault("")
+        setRequestProperty("appId", appId)
+        setRequestProperty("appVersion", appVersion)
+        Log.i(TAG, "request headers appId=$appId appVersion=$appVersion")
     }
 
     private fun downloadToFile(url: String, out: File, onProgress: ((Int) -> Unit)?) {

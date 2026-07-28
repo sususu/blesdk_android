@@ -17,20 +17,39 @@ import java.io.FileOutputStream
 import java.util.zip.ZipInputStream
 
 /**
- * Sifli DFU package prepare: download main zip → MD5 → unzip → map IMAGE_ID →
- * (diff mode) download resource zip.
+ * Prepare [DFUImagePath] list for Sifli NAND DFU.
  *
- * Aligned with HaWoFit [DeviceUpgradeManager.upgrade] QJS/Sifli branch.
+ * Aligned with HaWoFit `DeviceUpgradeManager.upgrade` QJS / Sifli branch.
+ *
+ * ## Full-package flow
+ * 1. Download `firmwares[0]` zip (MD5 as cache file name) into `cache/device/qjs`.
+ * 2. Unzip next to the zip; collect absolute file paths.
+ * 3. Map bin file name prefixes → IMAGE_ID:
+ *    - `hcpu*.bin`  → [IMAGE_ID_HCPU]
+ *    - `lcpu*.bin`  → [IMAGE_ID_LCPU]
+ *    - `patch*.bin` → [IMAGE_ID_NAND_LCPU_PATCH]
+ *    - `ctrl*.bin`  → [IMAGE_ID_CTRL]
+ *    - `outdyn*.bin` / `outroot*.bin` → [IMAGE_ID_DYN] / [IMAGE_ID_RES]
+ * 4. Return list for [com.sifli.siflidfu.SifliDFUService.startActionDFUNand].
+ *
+ * ## Diff-package flow
+ * If `diff_ctrl*.bin` is present (checked before plain `ctrl`):
+ * - Use that as CTRL image.
+ * - Require [OtaUpgradeInfo.resource] (name / url / md5).
+ * - Download resource into `cache/device/qjs_diff` and append as [IMAGE_ID_NAND_RES].
+ * - Skip outdyn / outroot from the main zip.
  */
 object SifliOtaHelper {
     /**
-     * @param onProgress download progress 0..100 (main zip + optional resource shared)
+     * @param onProgress overall prepare progress 0..100
+     *                   (main zip ≈ 0..85, optional resource ≈ 85..100)
      */
     fun prepareDfuImagePaths(
         context: Context,
         info: OtaUpgradeInfo,
         onProgress: ((Int) -> Unit)? = null,
     ): ArrayList<DFUImagePath> {
+        // Sifli production path only uses the first firmware entry.
         val firmware =
             info.firmwares.firstOrNull()
                 ?: throw IllegalStateException("No firmware package in upgrade info")
@@ -58,7 +77,7 @@ object SifliOtaHelper {
 
         for (absolutePath in extracted) {
             val name = File(absolutePath).name
-            // Order: check diff_ctrl before ctrl (same IMAGE_ID_CTRL).
+            // Prefer diff_ctrl over ctrl (same IMAGE_ID_CTRL slot).
             if (name.startsWith("diff_ctrl") && name.endsWith(".bin")) {
                 diffCtrlPath = DFUImagePath(absolutePath, null, IMAGE_ID_CTRL)
             } else if (name.startsWith("ctrl") && name.endsWith(".bin")) {
@@ -81,6 +100,7 @@ object SifliOtaHelper {
             }
         }
 
+        // Diff OTA: CTRL from diff_ctrl + separate NAND resource package.
         if (diffCtrlPath != null) {
             list += diffCtrlPath
             val resource = info.resource
@@ -100,6 +120,7 @@ object SifliOtaHelper {
             return list
         }
 
+        // Full OTA: CTRL + optional outdyn / outroot.
         if (ctrlPath != null) {
             list += ctrlPath
             outdynPath?.let { list += it }
@@ -111,6 +132,10 @@ object SifliOtaHelper {
         throw IllegalStateException("Zip missing ctrl / diff_ctrl")
     }
 
+    /**
+     * Unzip [zipFilePath] into [destDir].
+     * Returns absolute paths of extracted **files** only (directories are created but omitted).
+     */
     fun unzip(zipFilePath: String, destDir: String): ArrayList<String> {
         val files = ArrayList<String>()
         val dir = File(destDir)

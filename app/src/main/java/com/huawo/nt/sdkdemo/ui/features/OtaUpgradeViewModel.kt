@@ -27,6 +27,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * UI state for the OTA page.
+ *
+ * [hasUpgradePackage] gates the "Start upgrade" button: true only after a successful
+ * check that returned a newer package with at least one firmware file.
+ *
+ * Progress bar mapping during upgrade:
+ * - 0..40  = download / unzip / DFU image prepare ([SifliOtaHelper])
+ * - 40..100 = Sifli DFU transfer (driven by Fragment DFU broadcasts)
+ */
 data class OtaUpgradeUiState(
     val status: String = "",
     val macText: String = "",
@@ -44,12 +54,41 @@ data class OtaUpgradeUiState(
     val logs: List<String> = emptyList(),
 )
 
-/** Fragment binds [SifliDFUService] and starts DFU when this is emitted. */
+/**
+ * One-shot event for [OtaUpgradeFragment]: bind DFU LocalBroadcast then start
+ * [com.sifli.siflidfu.SifliDFUService.startActionDFUNand].
+ */
 data class SifliDfuStartEvent(
     val mac: String,
     val imagePaths: ArrayList<DFUImagePath>,
 )
 
+/**
+ * Orchestrates the firmware OTA flow (Sifli DFU path used by this demo).
+ *
+ * ## End-to-end sequence
+ *
+ * 1. **Refresh** ([refreshDeviceInfo])
+ *    - Prefer live [BleRepository.getDeviceInfo] when BLE is connected.
+ *    - Fallback to locally bound MAC / firmware when disconnected.
+ *    - Cache MAC, raw firmware string, product type, deviceId for later API calls.
+ *
+ * 2. **Check update** ([checkUpgrade])
+ *    - POST server via [OtaFirmwareApi.checkUpgrade] (headers: appId / appVersion).
+ *    - Compare server package vs device with [OtaFirmwareApi.isNewerThan].
+ *    - Enable "Start upgrade" only when newer **and** `firmwares` is non-empty.
+ *
+ * 3. **Start upgrade** ([startUpgrade])
+ *    - Preconditions: BLE connected, battery ≥ 30% (when queryable),
+ *      [UpgradeStatus.Normal] (when queryable).
+ *    - Download + prepare DFU images on IO ([SifliOtaHelper.prepareDfuImagePaths]).
+ *    - Emit [sifliDfuStart]; Fragment starts Sifli DFU service and forwards progress.
+ *
+ * 4. **DFU callbacks** ([onDfuProgress] / [onDfuSuccess] / [onDfuFail])
+ *    - Progress remapped into the 40..100 overall bar.
+ *    - On success, best-effort refresh device info after a short delay
+ *      (device may reboot and disconnect).
+ */
 class OtaUpgradeViewModel(
     application: Application,
     private val repository: BleRepository,
@@ -67,10 +106,13 @@ class OtaUpgradeViewModel(
     private val _sifliDfuStart = MutableSharedFlow<SifliDfuStartEvent>(extraBufferCapacity = 1)
     val sifliDfuStart: SharedFlow<SifliDfuStartEvent> = _sifliDfuStart.asSharedFlow()
 
+    /** Cached from last refresh / check; used as check-API inputs and DFU target MAC. */
     private var cachedMac: String = ""
     private var cachedFw: String = ""
     private var cachedType: String = ""
     private var cachedDeviceId: String = ""
+
+    /** Last server package accepted for upgrade; cleared when check finds nothing newer. */
     private var upgradeInfo: OtaUpgradeInfo? = null
     private var runningJob: Job? = null
     private val timeFmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
@@ -79,12 +121,17 @@ class OtaUpgradeViewModel(
     private fun str(resId: Int, vararg args: Any): String =
         if (args.isEmpty()) ctx().getString(resId) else ctx().getString(resId, *args)
 
+    /**
+     * Pull MAC + firmware (and product / deviceId) from the watch or local bind store.
+     * Does not talk to the upgrade server.
+     */
     fun refreshDeviceInfo() {
         if (_uiState.value.busy) return
         viewModelScope.launch {
             _uiState.update { it.copy(status = str(R.string.ota_refreshing)) }
             try {
                 if (!repository.isConnected()) {
+                    // Offline: show whatever we persisted at bind time.
                     val bound = repository.loadBoundDevice()
                     cachedMac = bound?.macAddress.orEmpty()
                     cachedFw = bound?.deviceInfo?.firmwareVersion.orEmpty()
@@ -104,9 +151,11 @@ class OtaUpgradeViewModel(
                 cachedFw = info.firmwareVersion.orEmpty()
                 cachedType = info.type.orEmpty()
                 cachedDeviceId = info.id.orEmpty()
+                // Some firmwares omit version in getDeviceInfo; query explicitly.
                 if (cachedFw.isBlank()) {
                     runCatching { cachedFw = repository.getFirmwareVersion() }
                 }
+                // Keep local bind record in sync so cold start still shows last known FW.
                 val bound = repository.loadBoundDevice()
                 if (bound != null && cachedMac.isNotBlank()) {
                     repository.saveBoundDevice(
@@ -133,9 +182,21 @@ class OtaUpgradeViewModel(
         }
     }
 
+    /**
+     * Ask the server whether a newer firmware package exists for this device.
+     *
+     * Required inputs (from cache / live deviceInfo):
+     * - firmware string → parsed into currentVersion + currentBuild
+     * - productCode (device type)
+     * - deviceId
+     *
+     * Side effect: sets [upgradeInfo] and [OtaUpgradeUiState.hasUpgradePackage] when
+     * the package is newer than the watch.
+     */
     fun checkUpgrade() {
         if (_uiState.value.busy) return
         viewModelScope.launch {
+            // Lazy fill cache if user tapped check without refreshing first.
             if (cachedMac.isBlank() || cachedFw.isBlank()) {
                 if (repository.isConnected()) {
                     runCatching {
@@ -181,11 +242,13 @@ class OtaUpgradeViewModel(
                 val info =
                     withContext(Dispatchers.IO) {
                         OtaFirmwareApi.checkUpgrade(
+                            context = getApplication(),
                             currentFirmwareRaw = cachedFw,
                             productCode = cachedType,
                             deviceId = cachedDeviceId,
                         )
                     }
+                // Server may return a package that is not actually newer; gate Start button.
                 val newer = OtaFirmwareApi.isNewerThan(info, cachedFw)
                 val canStart = newer && info.firmwares.isNotEmpty()
                 upgradeInfo = if (canStart) info else null
@@ -257,6 +320,11 @@ class OtaUpgradeViewModel(
         }
     }
 
+    /**
+     * Run pre-checks, download/prepare Sifli DFU images, then hand off to Fragment
+     * via [sifliDfuStart]. This method does **not** wait for DFU to finish; completion
+     * is reported through [onDfuSuccess] / [onDfuFail].
+     */
     fun startUpgrade() {
         if (_uiState.value.busy) return
         val info = upgradeInfo
@@ -287,6 +355,7 @@ class OtaUpgradeViewModel(
                 }
                 appendLog(str(R.string.ota_log_start, formatServerVersion(info)))
                 try {
+                    // Gate 1: battery (production rule: refuse below 30%).
                     val battery = runCatching { repository.getBattery() }.getOrNull()
                     if (battery != null) {
                         appendLog(str(R.string.ota_log_battery, battery))
@@ -294,6 +363,7 @@ class OtaUpgradeViewModel(
                             throw IllegalStateException(str(R.string.ota_battery_low, battery))
                         }
                     }
+                    // Gate 2: device must be idle for OTA (not Recovering / WaitOta / OTAing).
                     val status = runCatching { repository.getDeviceUpgradeStatus() }.getOrNull()
                     if (status != null) {
                         appendLog(str(R.string.ota_log_upgrade_status, status.name))
@@ -304,6 +374,7 @@ class OtaUpgradeViewModel(
                         }
                     }
 
+                    // Download main zip (+ optional diff resource), unzip, map IMAGE_IDs.
                     setPhase(str(R.string.ota_phase_download), 0)
                     appendLog(str(R.string.ota_log_channel_sifli))
                     val paths =
@@ -312,7 +383,7 @@ class OtaUpgradeViewModel(
                                 context = getApplication(),
                                 info = info,
                             ) { pct ->
-                                // Download occupies 0..40 of overall bar
+                                // Map helper 0..100 into overall bar 0..40.
                                 updateProgress(
                                     (pct * 0.4f).toInt().coerceIn(0, 40),
                                     str(R.string.ota_phase_download),
@@ -324,6 +395,7 @@ class OtaUpgradeViewModel(
                         appendLog("DFU[$index] ${path.imagePath}")
                     }
 
+                    // Hand off to UI layer: register broadcast receiver, start DFU service.
                     setPhase(str(R.string.ota_phase_push), 40)
                     appendLog(str(R.string.ota_log_push_ready))
                     _sifliDfuStart.emit(SifliDfuStartEvent(cachedMac, paths))
@@ -344,6 +416,7 @@ class OtaUpgradeViewModel(
             }
     }
 
+    /** DFU progress from Sifli service, already 0..100; remapped to overall 40..100. */
     fun onDfuProgress(progress0to100: Int) {
         val pct = (40 + progress0to100 * 0.6f).toInt().coerceIn(40, 100)
         updateProgress(pct, str(R.string.ota_phase_push))
@@ -353,6 +426,9 @@ class OtaUpgradeViewModel(
         if (message.isNotBlank()) appendLog(message)
     }
 
+    /**
+     * DFU finished successfully. Device may reboot; refresh is best-effort after delay.
+     */
     fun onDfuSuccess() {
         updateProgress(100, str(R.string.ota_phase_done))
         _uiState.update {
