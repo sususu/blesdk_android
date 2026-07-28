@@ -175,6 +175,7 @@
     <string name="ota_need_product_code">缺少产品型号，请先连接并刷新</string>
     <string name="ota_need_check_first">请先检查升级</string>
     <string name="ota_starting">开始 OTA…</string>
+    <string name="ota_back_blocked">升级进行中，请勿离开此页面</string>
     <string name="ota_success">OTA 成功，设备可能重启</string>
     <string name="ota_new_version">新版本: %1$s</string>
     <string name="ota_new_version_arrow">→ %1$s</string>

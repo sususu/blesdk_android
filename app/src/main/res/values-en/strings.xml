@@ -175,6 +175,7 @@
     <string name="ota_need_product_code">Product code unavailable; connect and refresh first</string>
     <string name="ota_need_check_first">Check update first</string>
     <string name="ota_starting">Starting OTA…</string>
+    <string name="ota_back_blocked">OTA in progress, please do not leave this page</string>
     <string name="ota_success">OTA succeeded; device may reboot</string>
     <string name="ota_new_version">New version: %1$s</string>
     <string name="ota_new_version_arrow">→ %1$s</string>
