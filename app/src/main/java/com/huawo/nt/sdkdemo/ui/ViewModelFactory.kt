@@ -16,6 +16,7 @@ import com.huawo.nt.sdkdemo.ui.features.OtaUpgradeViewModel
 import com.huawo.nt.sdkdemo.ui.main.HomeViewModel
 import com.huawo.nt.sdkdemo.ui.scan.ScanViewModel
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowViewModel
+import com.huawo.nt.sdkdemo.ui.watchface.OnlineWatchfaceViewModel
 
 class ViewModelFactory(
     private val application: Application = SdkDemoApp.instance,
@@ -46,6 +47,8 @@ class ViewModelFactory(
                 AgpsUpdateViewModel(application, repository) as T
             modelClass.isAssignableFrom(OtaUpgradeViewModel::class.java) ->
                 OtaUpgradeViewModel(application, repository) as T
+            modelClass.isAssignableFrom(OnlineWatchfaceViewModel::class.java) ->
+                OnlineWatchfaceViewModel(application, repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
         }
     }

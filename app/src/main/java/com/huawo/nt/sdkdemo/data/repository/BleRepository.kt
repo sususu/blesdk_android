@@ -20,6 +20,7 @@ import com.huawo.nt.sdkdemo.data.model.BleGpsStatus
 import com.huawo.nt.sdkdemo.data.model.OtaTransferCallback
 import com.huawo.nt.sdkdemo.data.model.MusicStorage
 import com.huawo.nt.sdkdemo.data.model.MusicTransferCallback
+import com.huawo.nt.sdkdemo.data.model.OnlineWatchfaceTransferCallback
 import com.huawo.nt.sdkdemo.data.model.ScanEvent
 import com.huawo.nt.sdkdemo.data.model.SdkException
 import com.huawo.nt.sdkdemo.util.AlbumBinConverter
@@ -51,6 +52,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.SedentaryReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SleepsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SocialAppSwitchesCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SportsCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.StringListCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.UpgradeStatusCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.WashHandReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.ota.OtaCallback
@@ -60,6 +62,7 @@ import com.huawo.sdk.bluetoothsdk.wl.ota.WlOtaCallback
 import com.huawo.sdk.bluetoothsdk.wl.ota.WlOtaManager
 import com.huawo.watchface.Callback as SifliCallback
 import com.huawo.watchface.SifliWatchSDK
+import com.huawo.watchface.WatchfaceSDK
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.GetActivityNum
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.GetSports
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.ActivityNum
@@ -118,10 +121,20 @@ class BleRepository(private val application: Application) {
             }
         }
 
+    /**
+     * One-time BLE + Sifli stack warm-up (called from Home when the app is ready).
+     *
+     * - [BluetoothSDK]: scan / connect / GATT ops (maxMtu typically 247).
+     * - [SifliWatchSDK]: zip file push for album / music / AGPS / online watchface (typed syncZipFile).
+     * - [WatchfaceSDK]: custom watchface package push (`setCustomWatchface`).
+     *   Also initialized in [com.huawo.nt.sdkdemo.SdkDemoApp]; duplicated here so BLE-only
+     *   entry points cannot forget it. Safe to call init more than once.
+     */
     fun init(maxMtu: Int = 247) {
         if (!initialized) {
             BluetoothSDK.init(application, maxMtu)
             SifliWatchSDK.getInstance().init(application)
+            WatchfaceSDK.getInstance().init(application)
             initialized = true
             registerConnectionListener()
         }
@@ -1210,6 +1223,122 @@ class BleRepository(private val application: Application) {
     private fun connectedMacOrNull(): String? =
         BluetoothSDK.getConnectedDevice()?.mac?.takeIf { it.isNotBlank() }
             ?: boundStore.load()?.macAddress?.takeIf { it.isNotBlank() }
+
+    // endregion
+
+    // region §13 Online watchface (Sifli, type=5)
+    //
+    // Reference: HaWoFit DeviceSDKProxy.setOnlineWatchface (QJS / hasQJSFeature branch).
+    // Demo intentionally implements ONLY the Sifli path:
+    //   write/keep zip on disk → SifliWatchSDK.syncZipFile(needByteAlign=false, type=5)
+    // Do NOT use BluetoothSDK.setOnlineWatchface (generic) or WL MediaTransfer here.
+
+    /**
+     * List watchface names already present on the Sifli watch.
+     *
+     * Used before install to decide “switch only” vs “download + push”.
+     * Empty list / failure is handled by the ViewModel (fallback to download).
+     */
+    suspend fun getSifliWatchfaces(): List<String> {
+        return suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getSifliWatchfaces(
+                object : StringListCallback() {
+                    override fun onSuccess(valueList: MutableList<String>?) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(valueList?.toList().orEmpty())
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(
+                                    SdkException(code, "getSifliWatchfaces failed"),
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+        }
+    }
+
+    /**
+     * Activate an already-installed Sifli watchface by [name] (no file transfer).
+     * Prefer this when the catalog face is detected on-device — much faster than re-push.
+     */
+    suspend fun switchSifliWatchfaceBy(name: String) {
+        awaitVoid("switchSifliWatchfaceBy failed") {
+            BluetoothSDK.switchSifliWatchfaceBy(name, it)
+        }
+    }
+
+    /**
+     * Push a verified online-watchface zip to the watch over Sifli BLE ZIP.
+     *
+     * ## syncZipFile arguments (must match HaWoFit QJS online install)
+     * - `needByteAlign` = **false** (music uses true; watchface uses false)
+     * - `type` = **5** (online watchface; 3=album/AGPS, 4=music)
+     * - `mac` = connected BLE MAC (fallback: bound store)
+     *
+     * ## Preconditions
+     * - [zipFile] exists and non-empty (caller already MD5-checked when server provided hash)
+     * - Sifli SDK not busy (`isWorking` → code 190)
+     * - BLE connected
+     *
+     * Callbacks are delivered on the main thread.
+     */
+    fun pushOnlineWatchfaceZip(zipFile: File, callback: OnlineWatchfaceTransferCallback) {
+        if (!zipFile.exists() || zipFile.length() == 0L) {
+            callback.onFail(-3, "Watchface zip missing or empty")
+            return
+        }
+        if (SifliWatchSDK.getInstance().isWorking) {
+            callback.onFail(190, "Sifli SDK is busy")
+            return
+        }
+        val mac = connectedMacOrNull()
+        if (mac.isNullOrBlank()) {
+            callback.onFail(-5, "Device MAC unavailable for watchface push")
+            return
+        }
+        if (!isConnected()) {
+            callback.onFail(408, "BLE disconnected")
+            return
+        }
+        mainHandler.post {
+            callback.onReady()
+            SifliWatchSDK.getInstance().syncZipFile(
+                false,
+                mac,
+                zipFile.absolutePath,
+                5,
+                object : SifliCallback {
+                    override fun onProgress(current: Long, total: Long) {
+                        val progress =
+                            if (total > 0L) current.toFloat() / total.toFloat() else 0f
+                        mainHandler.post { callback.onProgress(progress) }
+                    }
+
+                    override fun onSuccess() {
+                        mainHandler.post { callback.onSuccess() }
+                    }
+
+                    override fun onError(code: Int) {
+                        mainHandler.post {
+                            callback.onFail(code, "Sifli watchface push failed")
+                        }
+                    }
+
+                    override fun onCancel() {
+                        mainHandler.post {
+                            callback.onFail(14, "Sifli watchface push cancelled")
+                        }
+                    }
+                },
+            )
+        }
+    }
 
     // endregion
 

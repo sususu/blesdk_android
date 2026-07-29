@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <cache-path
+        name="camera_cache"
+        path="camera/" />
+    <!-- AI workspace (record.pcm share) -->
+    <external-files-path
+        name="ai_external_files"
+        path="." />
+    <files-path
+        name="ai_files"
+        path="." />
+    <cache-path
+        name="ai_cache"
+        path="." />
+</paths>

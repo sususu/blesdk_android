@@ -27,6 +27,7 @@ import com.huawo.nt.sdkdemo.ui.features.NotifyFragment
 import com.huawo.nt.sdkdemo.ui.features.OtaUpgradeFragment
 import com.huawo.nt.sdkdemo.ui.scan.ScanConnectFragment
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowDialogFragment
+import com.huawo.nt.sdkdemo.ui.watchface.WatchfaceFragment
 import com.huawo.nt.sdkdemo.util.AppLanguage
 import com.huawo.nt.sdkdemo.util.LocaleHelper
 import kotlinx.coroutines.launch
@@ -91,6 +92,9 @@ class HomeFragment : Fragment() {
         }
         binding.btnOta.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(OtaUpgradeFragment())
+        }
+        binding.btnWatchface.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(WatchfaceFragment())
         }
 
         parentFragmentManager.setFragmentResultListener(
@@ -196,6 +200,7 @@ class HomeFragment : Fragment() {
         binding.btnAlbum.isEnabled = canFeature
         binding.btnAgps.isEnabled = canFeature
         binding.btnOta.isEnabled = canFeature
+        binding.btnWatchface.isEnabled = canFeature
 
         logAdapter.submit(state.logs)
     }
