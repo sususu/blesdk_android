@@ -1,6 +1,7 @@
 package com.huawo.nt.sdkdemo.ui.main
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.huawo.nt.sdkdemo.R
@@ -313,29 +314,49 @@ class HomeViewModel(
                         emptyList()
                     }
                 val heartrates = repository.getHeartrates()
+                dumpModels("Heartrate", heartrates)
                 val sleeps = repository.getSleeps()
+                dumpModels("Sleep", sleeps)
+                val hrvs = repository.getHrvs()
+                dumpModels("Hrv", hrvs)
                 val totalSteps = activities.sumOf { it.step }
-                val summary =
+                dumpModels("Activity", activities)
+                val countSummary =
                     str(
                         R.string.sync_summary,
                         activities.size,
                         totalSteps,
                         heartrates.size,
                         sleeps.size,
+                        hrvs.size,
                     )
+                // Show full model dumps on the sync summary panel (not only counts).
+                val detailSummary =
+                    buildString {
+                        appendLine(countSummary)
+                        appendLine()
+                        append(formatModelDump("Activity", activities))
+                        appendLine()
+                        append(formatModelDump("Heartrate", heartrates))
+                        appendLine()
+                        append(formatModelDump("Sleep", sleeps))
+                        appendLine()
+                        append(formatModelDump("Hrv", hrvs))
+                    }.trimEnd()
                 if (activities.isNotEmpty()) runCatching { repository.deleteSports() }
                 if (heartrates.isNotEmpty()) runCatching { repository.deleteHeartrates() }
                 if (sleeps.isNotEmpty()) runCatching { repository.deleteSleeps() }
+                if (hrvs.isNotEmpty()) runCatching { repository.deleteHrvs() }
 
                 _uiState.update {
                     it.copy(
                         phase = if (it.bound) DevicePhase.BOUND else DevicePhase.CONNECTED,
                         status = str(R.string.status_sync_done),
-                        syncSummary = summary,
+                        syncSummary = detailSummary,
                         busy = false,
                     )
                 }
-                appendLog(str(R.string.log_sync_done, summary.replace("\n", " / ")))
+                appendLog(str(R.string.log_sync_done, countSummary.replace("\n", " / ")))
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -431,11 +452,38 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Print every model via [Any.toString] (data-class fields) to home logs + Logcat.
+     */
+    private fun dumpModels(label: String, items: List<Any>) {
+        val dump = formatModelDump(label, items)
+        dump.lineSequence().forEach { line ->
+            if (line.isNotEmpty()) appendLog(line)
+        }
+        Log.i(TAG, dump)
+    }
+
+    private fun formatModelDump(label: String, items: List<Any>): String {
+        if (items.isEmpty()) return "$label (0):\n  (empty)"
+        return buildString {
+            appendLine("$label (${items.size}):")
+            items.forEachIndexed { i, item ->
+                append("  [$i] ")
+                appendLine(item.toString())
+            }
+        }.trimEnd()
+    }
+
     private fun appendLog(msg: String) {
         val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         _uiState.update { state ->
             val logs = listOf("$time  $msg") + state.logs
-            state.copy(logs = logs.take(80))
+            // Keep enough room for full sync model dumps.
+            state.copy(logs = logs.take(500))
         }
+    }
+
+    companion object {
+        private const val TAG = "HomeViewModel"
     }
 }

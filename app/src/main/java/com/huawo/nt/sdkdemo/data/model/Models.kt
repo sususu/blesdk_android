@@ -33,7 +33,8 @@ data class HealthDataCount(
     val activityCount: Int = 0,
     val sleepCount: Int = 0,
     val heartrateCount: Int = 0,
-    val hrfCount: Int = 0,
+    /** Count of HRV / SpO2 / stress records on device ([ActivityNum.hrvNum]). */
+    val hrvCount: Int = 0,
 )
 
 /** Watch music available storage (SDK callback, units in KB). */
@@ -119,6 +120,23 @@ data class BleHeartrate(
     val index: Int = 0,
     val timeMs: Long = 0,
     val bpm: Int = 0,
+)
+
+/**
+ * One record from [com.huawo.sdk.bluetoothsdk.BluetoothSDK.getHrvs].
+ *
+ * SDK model field `fatigue` is misnamed — it is **HRV** (heart-rate variability).
+ * Also carries SpO2 (blood oxygen) and stress (pressure).
+ */
+data class BleHrv(
+    val index: Int = 0,
+    val timeMs: Long = 0,
+    /** Heart-rate variability (SDK field name: fatigue). */
+    val hrv: Int = 0,
+    /** Stress / mental pressure. */
+    val stress: Int = 0,
+    /** Blood oxygen SpO2 (%). */
+    val spo2: Int = 0,
 )
 
 data class BleSleep(

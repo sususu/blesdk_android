@@ -89,7 +89,7 @@
     <string name="reason_boot_restore">启动恢复</string>
     <string name="reason_reconnect">断线重连</string>
     <string name="error_no_device_to_sync">没有可同步的设备，请先连接并绑定</string>
-    <string name="sync_summary">活动 %1$d 条（步数合计 %2$d）\n心率 %3$d 条\n睡眠 %4$d 条</string>
+    <string name="sync_summary">活动 %1$d 条（步数合计 %2$d）\n心率 %3$d 条\n睡眠 %4$d 条\nHRV/血氧/压力 %5$d 条</string>
 
     <string name="bind_subtitle">按 SDK「§6 配对与绑定」逐步调用（当前：Android）</string>
     <string name="unbind_subtitle">按 SDK 解绑流程逐步调用（当前：Android）</string>

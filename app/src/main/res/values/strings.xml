@@ -89,7 +89,7 @@
     <string name="reason_boot_restore">startup restore</string>
     <string name="reason_reconnect">auto reconnect</string>
     <string name="error_no_device_to_sync">No device to sync. Connect and bind first</string>
-    <string name="sync_summary">Activities %1$d (steps %2$d)\nHeart rates %3$d\nSleeps %4$d</string>
+    <string name="sync_summary">Activities %1$d (steps %2$d)\nHeart rates %3$d\nSleeps %4$d\nHRV / SpO2 / stress %5$d</string>
 
     <string name="bind_subtitle">Follow SDK §6 pairing &amp; binding steps (Android)</string>
     <string name="unbind_subtitle">Follow SDK unbind steps (Android)</string>

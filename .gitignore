@@ -14,3 +14,5 @@
 .cxx
 local.properties
 /.tmp_aar
+/app/build
+/app/release

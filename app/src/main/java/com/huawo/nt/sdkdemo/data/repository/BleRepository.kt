@@ -8,6 +8,7 @@ import com.huawo.nt.sdkdemo.data.model.BleActivity
 import com.huawo.nt.sdkdemo.data.model.BleDevice
 import com.huawo.nt.sdkdemo.data.model.BleDeviceInfo
 import com.huawo.nt.sdkdemo.data.model.BleHeartrate
+import com.huawo.nt.sdkdemo.data.model.BleHrv
 import com.huawo.nt.sdkdemo.data.model.BleSleep
 import com.huawo.nt.sdkdemo.data.model.BoundDeviceRecord
 import com.huawo.nt.sdkdemo.data.model.ConnectionEvent
@@ -47,6 +48,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.DrinkWaterReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.GoalCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.GpsStatusCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.HeartratesCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.HrvsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntArrayCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SedentaryReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SleepsCallback
@@ -76,6 +78,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Goal
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.GoalType
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.GpsStatus
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Heartrate
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Hrv
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.RepeatPeriodUnit
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.SedentaryReminder
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Sleep
@@ -351,7 +354,7 @@ class BleRepository(private val application: Application) {
                                             activityCount = activityNum.sportNum,
                                             sleepCount = activityNum.sleepNum,
                                             heartrateCount = activityNum.heartrateNum,
-                                            hrfCount = activityNum.hrvNum,
+                                            hrvCount = activityNum.hrvNum,
                                         ),
                                     )
                                 }
@@ -452,12 +455,42 @@ class BleRepository(private val application: Application) {
         }
     }
 
+    /**
+     * Fetch HRV / SpO2 / stress records via [BluetoothSDK.getHrvs].
+     * SDK queries activity-num first; empty list when `hrvNum == 0`.
+     */
+    suspend fun getHrvs(): List<BleHrv> {
+        return suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getHrvs(
+                object : HrvsCallback() {
+                    override fun onSuccess(hrvList: List<Hrv>?) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resume(hrvList?.map { it.toModel() }.orEmpty())
+                            }
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(SdkException(code, "getHrvs failed"))
+                            }
+                        }
+                    }
+                },
+            )
+        }
+    }
+
     suspend fun deleteSports() = awaitVoid("deleteSports failed") { BluetoothSDK.delSports(it) }
 
     suspend fun deleteHeartrates() =
         awaitVoid("deleteHeartrates failed") { BluetoothSDK.delHeartrates(it) }
 
     suspend fun deleteSleeps() = awaitVoid("deleteSleeps failed") { BluetoothSDK.delSleeps(it) }
+
+    suspend fun deleteHrvs() = awaitVoid("deleteHrvs failed") { BluetoothSDK.delHrv(it) }
 
     // region §8 Goals
 
@@ -1585,6 +1618,18 @@ class BleRepository(private val application: Application) {
         )
 
     private fun Heartrate.toModel() = BleHeartrate(index = index, timeMs = time, bpm = bpm)
+
+    /**
+     * Map SDK [Hrv]: `fatigue` → [BleHrv.hrv] (HRV), `stress` → stress, `spo2` → SpO2.
+     */
+    private fun Hrv.toModel() =
+        BleHrv(
+            index = index,
+            timeMs = time,
+            hrv = fatigue,
+            stress = stress,
+            spo2 = spo2,
+        )
 
     private fun Sleep.toModel(index: Int) =
         BleSleep(
