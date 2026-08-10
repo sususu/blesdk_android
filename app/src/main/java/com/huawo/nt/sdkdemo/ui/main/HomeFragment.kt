@@ -52,6 +52,7 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.logList.layoutManager = LinearLayoutManager(requireContext())
         binding.logList.adapter = logAdapter
+        binding.logList.isNestedScrollingEnabled = true
         setupLanguageMenu()
 
         binding.btnScan.setOnClickListener {

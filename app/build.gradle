@@ -67,6 +67,7 @@ dependencies {
     implementation libs.androidx.localbroadcastmanager
     implementation libs.androidx.viewpager2
     implementation project(':imagepicker')
+    implementation libs.androidx.exifinterface
     implementation libs.colorpickerview
     implementation libs.gson
     implementation libs.okhttp

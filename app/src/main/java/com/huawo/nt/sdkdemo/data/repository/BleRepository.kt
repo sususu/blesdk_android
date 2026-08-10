@@ -1617,7 +1617,8 @@ class BleRepository(private val application: Application) {
             avgBpm = heartAvg,
         )
 
-    private fun Heartrate.toModel() = BleHeartrate(index = index, timeMs = time, bpm = bpm)
+    private fun Heartrate.toModel() =
+        BleHeartrate(index = index, timeMs = time, bpm = bpm, resting = isResting)
 
     /**
      * Map SDK [Hrv]: `fatigue` → [BleHrv.hrv] (HRV), `stress` → stress, `spo2` → SpO2.

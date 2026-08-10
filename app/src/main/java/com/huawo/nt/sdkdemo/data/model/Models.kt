@@ -120,6 +120,8 @@ data class BleHeartrate(
     val index: Int = 0,
     val timeMs: Long = 0,
     val bpm: Int = 0,
+    /** Whether this sample is a resting heart-rate reading (SDK [Heartrate.resting]). */
+    val resting: Boolean = false,
 )
 
 /**

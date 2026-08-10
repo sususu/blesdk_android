@@ -330,19 +330,6 @@ class HomeViewModel(
                         sleeps.size,
                         hrvs.size,
                     )
-                // Show full model dumps on the sync summary panel (not only counts).
-                val detailSummary =
-                    buildString {
-                        appendLine(countSummary)
-                        appendLine()
-                        append(formatModelDump("Activity", activities))
-                        appendLine()
-                        append(formatModelDump("Heartrate", heartrates))
-                        appendLine()
-                        append(formatModelDump("Sleep", sleeps))
-                        appendLine()
-                        append(formatModelDump("Hrv", hrvs))
-                    }.trimEnd()
                 if (activities.isNotEmpty()) runCatching { repository.deleteSports() }
                 if (heartrates.isNotEmpty()) runCatching { repository.deleteHeartrates() }
                 if (sleeps.isNotEmpty()) runCatching { repository.deleteSleeps() }
@@ -352,7 +339,8 @@ class HomeViewModel(
                     it.copy(
                         phase = if (it.bound) DevicePhase.BOUND else DevicePhase.CONNECTED,
                         status = str(R.string.status_sync_done),
-                        syncSummary = detailSummary,
+                        // Counts only here — full models are in the scrollable log list.
+                        syncSummary = countSummary,
                         busy = false,
                     )
                 }
@@ -478,12 +466,14 @@ class HomeViewModel(
         val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         _uiState.update { state ->
             val logs = listOf("$time  $msg") + state.logs
-            // Keep enough room for full sync model dumps.
-            state.copy(logs = logs.take(500))
+            // Drop oldest when over [MAX_LOG_LINES]; UI list is scrollable.
+            state.copy(logs = logs.take(MAX_LOG_LINES))
         }
     }
 
     companion object {
         private const val TAG = "HomeViewModel"
+        /** Home log list capacity; older lines are discarded first. */
+        const val MAX_LOG_LINES = 2000
     }
 }

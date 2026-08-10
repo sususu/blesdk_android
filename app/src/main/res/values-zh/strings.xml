@@ -275,6 +275,12 @@
     <string name="cwf_enable_weather">天气</string>
     <string name="cwf_weather_color">天气颜色</string>
     <string name="cwf_enable_pointers">时针 / 分针 / 秒针 + 中心点</string>
+    <string name="cwf_pointer_images">指针图片（可选，替换默认 assets）</string>
+    <string name="cwf_pick_hour_img">时针图</string>
+    <string name="cwf_pick_minute_img">分针图</string>
+    <string name="cwf_pick_second_img">秒针图</string>
+    <string name="cwf_pick_dot_img">中心点图</string>
+    <string name="cwf_clear_pointer_img">清除</string>
     <string name="cwf_hour_color">时针</string>
     <string name="cwf_minute_color">分针</string>
     <string name="cwf_second_color">秒针</string>

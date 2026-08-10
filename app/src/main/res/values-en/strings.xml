@@ -275,6 +275,12 @@
     <string name="cwf_enable_weather">Weather</string>
     <string name="cwf_weather_color">Weather color</string>
     <string name="cwf_enable_pointers">Hour / minute / second pointers + center dot</string>
+    <string name="cwf_pointer_images">Pointer images (optional — replaces assets)</string>
+    <string name="cwf_pick_hour_img">Hour img</string>
+    <string name="cwf_pick_minute_img">Minute img</string>
+    <string name="cwf_pick_second_img">Second img</string>
+    <string name="cwf_pick_dot_img">Dot img</string>
+    <string name="cwf_clear_pointer_img">Clear</string>
     <string name="cwf_hour_color">Hour</string>
     <string name="cwf_minute_color">Minute</string>
     <string name="cwf_second_color">Second</string>

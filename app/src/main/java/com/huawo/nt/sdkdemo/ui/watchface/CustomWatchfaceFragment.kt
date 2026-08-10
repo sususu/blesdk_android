@@ -5,6 +5,7 @@ import android.content.DialogInterface
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Outline
 import android.graphics.Point
 import android.graphics.drawable.GradientDrawable
@@ -23,6 +24,7 @@ import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
+import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import com.google.android.material.textfield.TextInputEditText
 import com.huawo.imagepicker.ImagePicker
@@ -33,11 +35,7 @@ import com.huawo.sdk.bluetoothsdk.BluetoothSDK
 import com.huawo.watchface.Callback
 import com.huawo.watchface.custom.SifliCustomWatchface
 import com.huawo.watchface.custom.widget.Date
-import com.huawo.watchface.custom.widget.Dot
-import com.huawo.watchface.custom.widget.HourPointer
 import com.huawo.watchface.custom.widget.IconData
-import com.huawo.watchface.custom.widget.MinutePointer
-import com.huawo.watchface.custom.widget.SecondPointer
 import com.huawo.watchface.custom.widget.Step
 import com.huawo.watchface.custom.widget.Time
 import com.huawo.watchface.custom.widget.WeatherTA
@@ -107,6 +105,16 @@ class CustomWatchfaceFragment : Fragment() {
      */
     private var backgroundBitmap: Bitmap? = null
 
+    /** Optional custom pointer / center-dot bitmaps (null → stock assets in AAR). */
+    private var hourPointerBitmap: Bitmap? = null
+    private var minutePointerBitmap: Bitmap? = null
+    private var secondPointerBitmap: Bitmap? = null
+    private var dotPointerBitmap: Bitmap? = null
+
+    private enum class PointerImageTarget { HOUR, MINUTE, SECOND, DOT }
+
+    private var pendingPointerTarget: PointerImageTarget? = null
+
     /** True while zip/push is in progress — disables Sync / pickers to avoid re-entry. */
     private var busy = false
 
@@ -150,6 +158,46 @@ class CustomWatchfaceFragment : Fragment() {
             }
         }
 
+    /** Gallery pick for hour / minute / second / dot pointer artwork (no forced crop). */
+    private val pickPointerImage =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            val target = pendingPointerTarget
+            pendingPointerTarget = null
+            if (uri == null || target == null) return@registerForActivityResult
+            try {
+                // Decode + EXIF-correct first: phone gallery JPEGs often store sideways pixels.
+                // Syncing uncorrected art would put a rotated hand on the watch.
+                val decoded = decodePointerBitmap(uri) ?: return@registerForActivityResult
+                // Gallery photos can be thousands of px; stock hands are ~14×114–247.
+                val bmp = scalePointerBitmap(decoded, target)
+                when (target) {
+                    PointerImageTarget.HOUR -> {
+                        hourPointerBitmap = bmp
+                        binding.imgHourPointer.setImageBitmap(bmp)
+                    }
+                    PointerImageTarget.MINUTE -> {
+                        minutePointerBitmap = bmp
+                        binding.imgMinutePointer.setImageBitmap(bmp)
+                    }
+                    PointerImageTarget.SECOND -> {
+                        secondPointerBitmap = bmp
+                        binding.imgSecondPointer.setImageBitmap(bmp)
+                    }
+                    PointerImageTarget.DOT -> {
+                        dotPointerBitmap = bmp
+                        binding.imgDotPointer.setImageBitmap(bmp)
+                    }
+                }
+                schedulePreviewRefresh()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    requireContext(),
+                    e.message ?: e.javaClass.simpleName,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -174,10 +222,50 @@ class CustomWatchfaceFragment : Fragment() {
             binding.imgBg.setImageDrawable(null)
             schedulePreviewRefresh()
         }
+        setupPointerImagePickers()
         binding.btnSync.setOnClickListener { syncToWatch() }
 
         // First layout pass may have width=0; post so corner clip + widget layout see real size.
         binding.flPreview.post { refreshPreview() }
+    }
+
+    private fun setupPointerImagePickers() {
+        binding.btnPickHourImg.setOnClickListener {
+            pendingPointerTarget = PointerImageTarget.HOUR
+            pickPointerImage.launch("image/*")
+        }
+        binding.btnClearHourImg.setOnClickListener {
+            hourPointerBitmap = null
+            binding.imgHourPointer.setImageDrawable(null)
+            schedulePreviewRefresh()
+        }
+        binding.btnPickMinuteImg.setOnClickListener {
+            pendingPointerTarget = PointerImageTarget.MINUTE
+            pickPointerImage.launch("image/*")
+        }
+        binding.btnClearMinuteImg.setOnClickListener {
+            minutePointerBitmap = null
+            binding.imgMinutePointer.setImageDrawable(null)
+            schedulePreviewRefresh()
+        }
+        binding.btnPickSecondImg.setOnClickListener {
+            pendingPointerTarget = PointerImageTarget.SECOND
+            pickPointerImage.launch("image/*")
+        }
+        binding.btnClearSecondImg.setOnClickListener {
+            secondPointerBitmap = null
+            binding.imgSecondPointer.setImageDrawable(null)
+            schedulePreviewRefresh()
+        }
+        binding.btnPickDotImg.setOnClickListener {
+            pendingPointerTarget = PointerImageTarget.DOT
+            pickPointerImage.launch("image/*")
+        }
+        binding.btnClearDotImg.setOnClickListener {
+            dotPointerBitmap = null
+            binding.imgDotPointer.setImageDrawable(null)
+            schedulePreviewRefresh()
+        }
     }
 
     /** Fills Width/Height/Corner/Thumb fields from a panel preset when the spinner changes. */
@@ -444,10 +532,18 @@ class CustomWatchfaceFragment : Fragment() {
         binding.viewPointerHour.setBackgroundColor(toUiColor(hourColor))
         binding.viewPointerMinute.setBackgroundColor(toUiColor(minuteColor))
         binding.viewPointerSecond.setBackgroundColor(toUiColor(secondColor))
+        // Prefer custom pointer artwork in the live preview when set.
+        applyPreviewPointerDrawable(binding.viewPointerHour, hourPointerBitmap, hourColor)
+        applyPreviewPointerDrawable(binding.viewPointerMinute, minutePointerBitmap, minuteColor)
+        applyPreviewPointerDrawable(binding.viewPointerSecond, secondPointerBitmap, secondColor)
         binding.viewCenterDot.background =
-            GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(toUiColor(dotColor))
+            when (val customDot = dotPointerBitmap) {
+                null ->
+                    GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(toUiColor(dotColor))
+                    }
+                else -> android.graphics.drawable.BitmapDrawable(resources, customDot)
             }
 
         binding.tvDatePreview.isVisible = binding.cbDate.isChecked
@@ -556,15 +652,98 @@ class CustomWatchfaceFragment : Fragment() {
         if (binding.cbPointers.isChecked) {
             val cx = previewW / 2
             val cy = previewH / 2
-            placePivotBottom(binding.viewPointerHour, cx, cy)
-            placePivotBottom(binding.viewPointerMinute, cx, cy)
-            placePivotBottom(binding.viewPointerSecond, cx, cy)
+            placePreviewPointer(binding.viewPointerHour, hourPointerBitmap, cx, cy, sx, sy, 14, 114)
+            placePreviewPointer(binding.viewPointerMinute, minutePointerBitmap, cx, cy, sx, sy, 14, 194)
+            placePreviewPointer(binding.viewPointerSecond, secondPointerBitmap, cx, cy, sx, sy, 6, 247)
+            val dotSize =
+                (dotPointerBitmap?.width ?: 10).let { (it * sx).toInt().coerceIn(8, 28) }
+            binding.viewCenterDot.layoutParams =
+                (binding.viewCenterDot.layoutParams as FrameLayout.LayoutParams).apply {
+                    width = dotSize
+                    height = dotSize
+                }
             place(
                 binding.viewCenterDot,
                 cx - binding.viewCenterDot.layoutParams.width / 2,
                 cy - binding.viewCenterDot.layoutParams.height / 2,
             )
         }
+    }
+
+    /**
+     * Size the preview hand View from custom bitmap (or stock defaults), scaled dial→preview.
+     */
+    private fun placePreviewPointer(
+        view: View,
+        custom: Bitmap?,
+        centerX: Int,
+        centerY: Int,
+        sx: Float,
+        sy: Float,
+        defaultW: Int,
+        defaultH: Int,
+    ) {
+        val wPx = ((custom?.width ?: defaultW) * sx).toInt().coerceAtLeast(2)
+        val hPx = ((custom?.height ?: defaultH) * sy).toInt().coerceAtLeast(8)
+        val lp = view.layoutParams as FrameLayout.LayoutParams
+        lp.width = wPx
+        lp.height = hPx
+        view.layoutParams = lp
+        placePivotBottom(view, centerX, centerY)
+    }
+
+    private fun applyPreviewPointerDrawable(view: View, custom: Bitmap?, fallbackRgb: Int) {
+        if (custom != null) {
+            view.background = android.graphics.drawable.BitmapDrawable(resources, custom)
+        } else {
+            view.setBackgroundColor(toUiColor(fallbackRgb))
+        }
+    }
+
+    /** Decode gallery URI and apply EXIF orientation (BitmapFactory alone ignores it). */
+    private fun decodePointerBitmap(uri: Uri): Bitmap? {
+        val degrees =
+            requireContext().contentResolver.openInputStream(uri)?.use { stream ->
+                when (
+                    ExifInterface(stream).getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL,
+                    )
+                ) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270
+                    else -> 0
+                }
+            } ?: 0
+        val decoded =
+            requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                BitmapFactory.decodeStream(input)
+            } ?: return null
+        if (degrees == 0) return decoded
+        val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
+        return Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
+    }
+
+    /**
+     * Downscale gallery art so pointer assets stay near stock hand sizes.
+     * Max edge ≈ half dial (from current Width/Height fields).
+     */
+    private fun scalePointerBitmap(source: Bitmap, target: PointerImageTarget): Bitmap {
+        val dial = intOr(binding.etWidth, 466).coerceAtLeast(100)
+        val maxEdge =
+            when (target) {
+                PointerImageTarget.DOT -> (dial * 0.12f).toInt().coerceIn(16, 64)
+                PointerImageTarget.HOUR -> (dial * 0.35f).toInt()
+                PointerImageTarget.MINUTE -> (dial * 0.45f).toInt()
+                PointerImageTarget.SECOND -> (dial * 0.55f).toInt()
+            }
+        val longest = maxOf(source.width, source.height)
+        if (longest <= maxEdge) return source
+        val scale = maxEdge / longest.toFloat()
+        val w = (source.width * scale).toInt().coerceAtLeast(1)
+        val h = (source.height * scale).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(source, w, h, true)
     }
 
     /** Absolute top-left placement inside [binding.flPreview] (preview pixels). */
@@ -785,28 +964,35 @@ class CustomWatchfaceFragment : Fragment() {
                     }
 
                     // --- Analog pointers share one center Point ---
+                    // Custom* wrappers honor setCustomImage; stock AAR ignores setImage.
                     if (binding.cbPointers.isChecked) {
                         val center = Point(width / 2, height / 2)
-                        HourPointer(
+                        CustomHourPointer(
                             parseWidgetColor(binding.etHourColor.text?.toString(), 0x00FF00),
                         ).also {
                             it.center = center
+                            it.setCustomImage(hourPointerBitmap)
                             watchface.addWidget(it)
                         }
-                        MinutePointer(
+                        CustomMinutePointer(
                             parseWidgetColor(binding.etMinuteColor.text?.toString(), 0x0000FF),
                         ).also {
                             it.center = center
+                            it.setCustomImage(minutePointerBitmap)
                             watchface.addWidget(it)
                         }
-                        SecondPointer(
+                        CustomSecondPointer(
                             parseWidgetColor(binding.etSecondColor.text?.toString(), 0xA0FF55),
                         ).also {
                             it.center = center
+                            it.setCustomImage(secondPointerBitmap)
                             watchface.addWidget(it)
                         }
-                        Dot(parseWidgetColor(binding.etDotColor.text?.toString(), 0xFFFFFF)).also {
+                        CustomDot(
+                            parseWidgetColor(binding.etDotColor.text?.toString(), 0xFFFFFF),
+                        ).also {
                             it.center = center
+                            it.setCustomImage(dotPointerBitmap)
                             watchface.addWidget(it)
                         }
                     }
