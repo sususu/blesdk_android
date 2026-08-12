@@ -452,4 +452,16 @@
     <string name="album_cancelled">已取消传输</string>
     <string name="album_storage_result">空闲 %1$d KB / 设备文件数 %2$d / ID: %3$s</string>
     <string name="album_size_hint">转换尺寸: %1$d×%2$d</string>
+    <string name="sync_data_jl">同步数据（杰里）</string>
+    <string name="status_syncing_jl">正在同步杰里数据…</string>
+    <string name="status_sync_done_jl">杰里同步完成</string>
+    <string name="status_sync_failed_jl">杰里同步失败: %1$s</string>
+    <string name="log_sync_jl_start">杰里同步开始: mac=%1$s</string>
+    <string name="log_sync_jl_route">杰里同步路径: 步数、心率、睡眠、HRV、血氧、压力 V2</string>
+    <string name="log_sync_jl_callback">杰里回调: %1$s, 条数=%2$d</string>
+    <string name="log_sync_jl_delete_start">杰里删除开始: %1$s</string>
+    <string name="log_sync_jl_delete_done">杰里删除成功: %1$s</string>
+    <string name="log_sync_jl_delete_failed">杰里删除失败: %1$s, 错误=%2$s</string>
+    <string name="log_sync_jl_done">杰里同步完成: %1$s</string>
+    <string name="log_sync_jl_failed">杰里同步失败: %1$s</string>
 </resources>

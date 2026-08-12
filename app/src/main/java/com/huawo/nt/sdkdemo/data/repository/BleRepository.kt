@@ -53,10 +53,11 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntArrayCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SedentaryReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SleepsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SocialAppSwitchesCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.Spo2Callback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SportsCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.StressCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.StringListCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.UpgradeStatusCallback
-import com.huawo.sdk.bluetoothsdk.interfaces.callback.WashHandReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.ota.OtaCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.ota.OtaData
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.UpgradeStatus
@@ -85,7 +86,9 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Sleep
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.SocialAppSwitch
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.SocialMessage
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.SocialType
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Spo2
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Sport
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Stress
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.TimePoint
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Unit as MeasureUnit
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.UserInfo
@@ -483,6 +486,142 @@ class BleRepository(private val application: Application) {
         }
     }
 
+    /** Fetch jieli step records through an individual request. */
+    suspend fun getStepV2(): List<BleActivity> =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getStepV2(
+                object : SportsCallback() {
+                    override fun onSuccess(sportList: List<Sport>?) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(sportList?.map { it.toModel() }.orEmpty())
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(SdkException(code, "getStepV2 failed"))
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    /** Fetch jieli heart-rate records through an individual request. */
+    suspend fun getHeartRateV2(): List<BleHeartrate> =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getHeartRateV2(
+                object : HeartratesCallback() {
+                    override fun onSuccess(heartrateList: List<Heartrate>?) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(heartrateList?.map { it.toModel() }.orEmpty())
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(SdkException(code, "getHeartRateV2 failed"))
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    /** Fetch jieli sleep records through an individual request. */
+    suspend fun getSleepV2(): List<BleSleep> =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getSleepV2(
+                object : SleepsCallback() {
+                    override fun onSuccess(sleepList: List<Sleep>?) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resume(
+                                    sleepList?.mapIndexed { index, sleep -> sleep.toModel(index) }.orEmpty(),
+                                )
+                            }
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(SdkException(code, "getSleepV2 failed"))
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    /** Fetch jieli HRV records through an individual request. */
+    suspend fun getHrvV2(): List<BleHrv> =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getHrvV2(
+                object : HrvsCallback() {
+                    override fun onSuccess(hrvList: List<Hrv>?) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(hrvList?.map { it.toModel() }.orEmpty())
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(SdkException(code, "getHrvV2 failed"))
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    /** Fetch jieli blood-oxygen records and keep only the metric returned by this API. */
+    suspend fun getSpo2V2(): List<BleHrv> =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getSpo2V2(
+                object : Spo2Callback() {
+                    override fun onSuccess(spo2List: List<Spo2>?) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(spo2List?.map { it.toModel() }.orEmpty())
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(SdkException(code, "getSpo2V2 failed"))
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    /** Fetch jieli stress records and keep only the metric returned by this API. */
+    suspend fun getStressV2(): List<BleHrv> =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getStressV2(
+                object : StressCallback() {
+                    override fun onSuccess(stressList: List<Stress>?) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(stressList?.map { it.toModel() }.orEmpty())
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(SdkException(code, "getStressV2 failed"))
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
     suspend fun deleteSports() = awaitVoid("deleteSports failed") { BluetoothSDK.delSports(it) }
 
     suspend fun deleteHeartrates() =
@@ -491,6 +630,12 @@ class BleRepository(private val application: Application) {
     suspend fun deleteSleeps() = awaitVoid("deleteSleeps failed") { BluetoothSDK.delSleeps(it) }
 
     suspend fun deleteHrvs() = awaitVoid("deleteHrvs failed") { BluetoothSDK.delHrv(it) }
+
+    suspend fun deleteBlood() = awaitVoid("deleteBlood failed") { BluetoothSDK.delBlood(it) }
+
+    suspend fun deleteStress() = awaitVoid("deleteStress failed") { BluetoothSDK.delStress(it) }
+
+    suspend fun deleteHrvsV2() = awaitVoid("deleteHrvsV2 failed") { BluetoothSDK.delHrvV2(it) }
 
     // region §8 Goals
 
@@ -1632,6 +1777,10 @@ class BleRepository(private val application: Application) {
             spo2 = spo2,
         )
 
+    private fun Spo2.toModel() = BleHrv(index = index, timeMs = time, spo2 = spo2)
+
+    private fun Stress.toModel() = BleHrv(index = index, timeMs = time, stress = stress)
+
     private fun Sleep.toModel(index: Int) =
         BleSleep(
             index = index,
@@ -1641,4 +1790,5 @@ class BleRepository(private val application: Application) {
             awake = awakeDuration.toInt(),
             rem = remDuration.toInt(),
         )
+
 }

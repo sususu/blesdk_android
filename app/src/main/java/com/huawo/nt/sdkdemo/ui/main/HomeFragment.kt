@@ -67,6 +67,7 @@ class HomeFragment : Fragment() {
             }
         }
         binding.btnSync.setOnClickListener { viewModel.sync() }
+        binding.btnSyncJl.setOnClickListener { viewModel.syncJl() }
         binding.btnUnbind.setOnClickListener {
             if (viewModel.prepareUnbind()) {
                 UnbindFlowDialogFragment().show(parentFragmentManager, "unbind")
@@ -192,6 +193,7 @@ class HomeFragment : Fragment() {
         binding.btnScan.isEnabled = !state.busy
         binding.btnBind.isEnabled = canBind
         binding.btnSync.isEnabled = canSync
+        binding.btnSyncJl.isEnabled = canSync
         binding.btnUnbind.isEnabled = canUnbind
         binding.btnDisconnect.isEnabled = !state.busy && device != null
         binding.btnGoals.isEnabled = canFeature

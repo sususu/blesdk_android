@@ -358,6 +358,128 @@ class HomeViewModel(
         }
     }
 
+    fun syncJl() {
+        if (_uiState.value.busy) return
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    busy = true,
+                    phase = DevicePhase.SYNCING,
+                    status = str(R.string.status_syncing_jl),
+                    syncSummary = "",
+                )
+            }
+            appendLog(
+                str(
+                    R.string.log_sync_jl_start,
+                    _uiState.value.device?.macAddress.orEmpty(),
+                ),
+            )
+            try {
+                if (!repository.isConnected()) {
+                    val target = _uiState.value.device
+                        ?: error(str(R.string.error_no_device_to_sync))
+                    repository.connect(target.macAddress)
+                }
+
+                appendLog(str(R.string.log_sync_jl_route))
+                val activities = repository.getStepV2()
+                dumpModels("JieLi Activity", activities)
+                appendLog(str(R.string.log_sync_jl_callback, "STEP", activities.size))
+                val heartrates = repository.getHeartRateV2()
+                dumpModels("JieLi Heartrate", heartrates)
+                appendLog(str(R.string.log_sync_jl_callback, "HEART_RATE", heartrates.size))
+                val sleeps = repository.getSleepV2()
+                dumpModels("JieLi Sleep", sleeps)
+                appendLog(str(R.string.log_sync_jl_callback, "SLEEP", sleeps.size))
+                val hrvs = repository.getHrvV2()
+                dumpModels("JieLi Hrv", hrvs)
+                appendLog(str(R.string.log_sync_jl_callback, "HRV", hrvs.size))
+                val spo2s = repository.getSpo2V2()
+                dumpModels("JieLi Spo2", spo2s)
+                appendLog(str(R.string.log_sync_jl_callback, "BLOOD_OXYGEN", spo2s.size))
+                val stresses = repository.getStressV2()
+                dumpModels("JieLi Stress", stresses)
+                appendLog(str(R.string.log_sync_jl_callback, "STRESS", stresses.size))
+                val totalSteps = activities.sumOf { it.step }
+                // The three independent health APIs can describe the same timestamp.
+                val healthCount = (hrvs + spo2s + stresses).map { it.timeMs }.filter { it > 0 }.toSet().size
+                val countSummary =
+                    str(
+                        R.string.sync_summary,
+                        activities.size,
+                        totalSteps,
+                        heartrates.size,
+                        sleeps.size,
+                        healthCount,
+                    )
+                if (activities.isNotEmpty()) {
+                    appendLog(str(R.string.log_sync_jl_delete_start, "STEP"))
+                    runCatching { repository.deleteSports() }
+                        .onSuccess { appendLog(str(R.string.log_sync_jl_delete_done, "STEP")) }
+                        .onFailure { appendLog(str(R.string.log_sync_jl_delete_failed, "STEP", it.message.orEmpty())) }
+                }
+                if (heartrates.isNotEmpty()) {
+                    appendLog(str(R.string.log_sync_jl_delete_start, "HEART_RATE"))
+                    runCatching { repository.deleteHeartrates() }
+                        .onSuccess { appendLog(str(R.string.log_sync_jl_delete_done, "HEART_RATE")) }
+                        .onFailure {
+                            appendLog(
+                                str(R.string.log_sync_jl_delete_failed, "HEART_RATE", it.message.orEmpty()),
+                            )
+                        }
+                }
+                if (sleeps.isNotEmpty()) {
+                    appendLog(str(R.string.log_sync_jl_delete_start, "SLEEP"))
+                    runCatching { repository.deleteSleeps() }
+                        .onSuccess { appendLog(str(R.string.log_sync_jl_delete_done, "SLEEP")) }
+                        .onFailure { appendLog(str(R.string.log_sync_jl_delete_failed, "SLEEP", it.message.orEmpty())) }
+                }
+                if (hrvs.isNotEmpty()) {
+                    appendLog(str(R.string.log_sync_jl_delete_start, "HRV"))
+                    runCatching { repository.deleteHrvsV2() }
+                        .onSuccess { appendLog(str(R.string.log_sync_jl_delete_done, "HRV")) }
+                        .onFailure { appendLog(str(R.string.log_sync_jl_delete_failed, "HRV", it.message.orEmpty())) }
+                }
+                if (spo2s.isNotEmpty()) {
+                    appendLog(str(R.string.log_sync_jl_delete_start, "BLOOD_OXYGEN"))
+                    runCatching { repository.deleteBlood() }
+                        .onSuccess { appendLog(str(R.string.log_sync_jl_delete_done, "BLOOD_OXYGEN")) }
+                        .onFailure {
+                            appendLog(
+                                str(R.string.log_sync_jl_delete_failed, "BLOOD_OXYGEN", it.message.orEmpty()),
+                            )
+                        }
+                }
+                if (stresses.isNotEmpty()) {
+                    appendLog(str(R.string.log_sync_jl_delete_start, "STRESS"))
+                    runCatching { repository.deleteStress() }
+                        .onSuccess { appendLog(str(R.string.log_sync_jl_delete_done, "STRESS")) }
+                        .onFailure { appendLog(str(R.string.log_sync_jl_delete_failed, "STRESS", it.message.orEmpty())) }
+                }
+                _uiState.update {
+                    it.copy(
+                        phase = if (it.bound) DevicePhase.BOUND else DevicePhase.CONNECTED,
+                        status = str(R.string.status_sync_done_jl),
+                        syncSummary = countSummary,
+                        busy = false,
+                    )
+                }
+                appendLog(str(R.string.log_sync_jl_done, countSummary.replace("\n", " / ")))
+            } catch (e: Exception) {
+                val message = e.message.orEmpty()
+                _uiState.update {
+                    it.copy(
+                        phase = if (it.bound) DevicePhase.BOUND else DevicePhase.CONNECTED,
+                        status = str(R.string.status_sync_failed_jl, message),
+                        busy = false,
+                    )
+                }
+                appendLog(str(R.string.log_sync_jl_failed, message))
+            }
+        }
+    }
+
     fun disconnect() {
         viewModelScope.launch {
             try {
