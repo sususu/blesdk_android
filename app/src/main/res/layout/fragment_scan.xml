@@ -47,6 +47,7 @@
             android:layout_marginStart="12dp"
             android:layout_weight="1"
             android:textAppearance="?attr/textAppearanceSubtitle1"
+            android:textColor="?android:attr/textColorPrimary"
             tools:text="点击下方开始扫描" />
     </LinearLayout>
 

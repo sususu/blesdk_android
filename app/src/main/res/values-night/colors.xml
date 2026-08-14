@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark counterpart of surface_low (#F0F4F8); keeps banner readable with light text -->
+    <color name="surface_low">#FF243040</color>
+</resources>

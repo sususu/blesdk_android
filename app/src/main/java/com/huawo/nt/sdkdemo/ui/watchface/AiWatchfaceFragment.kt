@@ -298,14 +298,16 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
     /**
      * Initialize and start the AI SDK.
      *
-     * Order matters (same as AI SDK ReadMe / AiTestActivity):
-     * 1. [BluetoothSDK.setAppStatus] Foreground — some firmwares gate AI when app is "background".
-     * 2. [AiCenter.init] — may start VoiceRecorderService if mic permission already granted.
-     * 3. [AiCenter.setAiEvent] / setErrorMessageProvider / setLog / setCallback.
-     * 4. [AiCenter.setDeviceInfo] — **required** before watchface / Q&A; missing info → error 80051.
-     * 5. [AiCenter.startWorking] — registers BLE listeners for AI opcodes.
+     * Order (device-mic path used by this demo):
+     * 1. [BluetoothSDK.setAppStatus] Foreground
+     * 2. [AiCenter.init]`(ctx, false)` — do **not** auto-start phone recorder service
+     * 3. setAiEvent / setErrorMessageProvider / setLog / setCallback
+     * 4. [AiCenter.setKeyAndSecret]
+     * 5. [AiCenter.setRecordFromDevice]`(true)` — always use watch mic (no RECORD_AUDIO / FGS)
+     * 6. [AiCenter.startWorking]
+     * 7. [AiCenter.setDeviceInfo] — required (missing → 80051)
      *
-     * Uses [applicationContext] so AiCenter outlives this fragment's view; destroy happens in [onDestroy].
+     * [AiCenter.setApplication] is done in [com.huawo.nt.sdkdemo.SdkDemoApp].
      */
     private fun startAiCenter() {
         val device = BluetoothSDK.getConnectedDevice()
@@ -316,7 +318,7 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         }
 
         BluetoothSDK.setAppStatus(AppStatus.Foreground)
-        AiCenter.getInstance().init(requireContext().applicationContext)
+        AiCenter.getInstance().init(requireContext().applicationContext, false)
         AiCenter.getInstance().setAiEvent(this)
         AiCenter.getInstance().setErrorMessageProvider(this)
         AiCenter.getInstance().setLog(aiLog)
@@ -333,8 +335,12 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
                 }
             },
         )
-        AiCenter.getInstance().setDeviceInfo(buildDeviceInfo())
+        // Same demo key/secret as product demo apps (replace with vendor credentials in production).
+        AiCenter.getInstance().setKeyAndSecret(AI_DEMO_KEY, AI_DEMO_SECRET)
+        // Fixed: watch-side microphone — no phone RECORD_AUDIO / startRecordService.
+        AiCenter.getInstance().setRecordFromDevice(true)
         AiCenter.getInstance().startWorking()
+        AiCenter.getInstance().setDeviceInfo(buildDeviceInfo())
         aiStarted = true
         appendLine(getString(R.string.ai_wf_started))
         binding.tvStatus.setText(R.string.ai_wf_working)
@@ -740,4 +746,10 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         val thumbH: Int,
         val thumbCorner: Int,
     )
+
+    companion object {
+        /** Demo credentials (same as HaWoFit). Replace with vendor-issued key/secret for production. */
+        private const val AI_DEMO_KEY = "1f34e8ae-4bfc-4464-8fb0-1282200d7bac"
+        private const val AI_DEMO_SECRET = "b66e29bb1125d8c5d27139f467822c16"
+    }
 }

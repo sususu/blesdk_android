@@ -24,6 +24,7 @@
         android:paddingHorizontal="16dp"
         android:paddingVertical="12dp"
         android:textAppearance="?attr/textAppearanceSubtitle2"
+        android:textColor="?android:attr/textColorPrimary"
         tools:text="Ready" />
 
     <LinearLayout

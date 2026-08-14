@@ -19,6 +19,7 @@ import com.huawo.nt.sdkdemo.ui.ViewModelFactory
 import com.huawo.nt.sdkdemo.ui.bind.BindFlowDialogFragment
 import com.huawo.nt.sdkdemo.ui.common.LogAdapter
 import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateFragment
+import com.huawo.nt.sdkdemo.ui.features.AiCenterFragment
 import com.huawo.nt.sdkdemo.ui.features.AlarmsFragment
 import com.huawo.nt.sdkdemo.ui.features.AlbumTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.GoalsFragment
@@ -97,6 +98,9 @@ class HomeFragment : Fragment() {
         }
         binding.btnWatchface.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(WatchfaceFragment())
+        }
+        binding.btnAi.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(AiCenterFragment())
         }
 
         parentFragmentManager.setFragmentResultListener(
@@ -204,6 +208,7 @@ class HomeFragment : Fragment() {
         binding.btnAgps.isEnabled = canFeature
         binding.btnOta.isEnabled = canFeature
         binding.btnWatchface.isEnabled = canFeature
+        binding.btnAi.isEnabled = canFeature
 
         logAdapter.submit(state.logs)
     }
