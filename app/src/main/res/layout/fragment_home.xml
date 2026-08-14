@@ -47,6 +47,7 @@
             android:layout_marginStart="12dp"
             android:layout_weight="1"
             android:textAppearance="?attr/textAppearanceSubtitle1"
+            android:textColor="?android:attr/textColorPrimary"
             tools:text="SDK 就绪" />
     </LinearLayout>
 
@@ -295,6 +296,15 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/feature_watchface" />
+
+        <!-- Title uses @string/feature_ai (same in zh/en). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_ai"
+            style="@style/Widget.SDKDemo.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/feature_ai" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
