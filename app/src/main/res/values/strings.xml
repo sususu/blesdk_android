@@ -464,4 +464,31 @@
     <string name="log_sync_jl_delete_failed">JieLi delete failed: %1$s, error=%2$s</string>
     <string name="log_sync_jl_done">JieLi sync completed: %1$s</string>
     <string name="log_sync_jl_failed">JieLi sync failed: %1$s</string>
+    <string name="feature_ota_jl">OTA(JieLi)</string>
+    <string name="feature_watchface_jl">Watchface(JieLi)</string>
+    <string name="jl_owf_invalid_package">JieLi watchface name, package URL, or MD5 is missing</string>
+    <string name="jl_cwf_size">Watchface size</string>
+    <string name="jl_cwf_background">Background images</string>
+    <string name="jl_cwf_ai_prompt">AI image prompt</string>
+    <string name="jl_cwf_generate_ai">Generate AI background</string>
+    <string name="jl_cwf_options">Display and pointer options</string>
+    <string name="jl_cwf_widgets">Widget type and coordinate</string>
+    <string name="jl_cwf_query_storage">Query available storage</string>
+    <string name="jl_cwf_install">Install custom watchface</string>
+    <string name="jl_cwf_storage_result">Available: %1$d KB, max %2$d images</string>
+    <string name="jl_cwf_storage_failed">Failed to query watchface storage</string>
+    <string name="jl_cwf_image_limit">Only %1$d background images are supported by current storage</string>
+    <string name="jl_cwf_images_selected">Selected images: %1$d / %2$d</string>
+    <string name="jl_cwf_ai_prompt_required">Enter an AI image prompt first</string>
+    <string name="jl_cwf_ai_generating">Generating AI background…</string>
+    <string name="jl_cwf_ai_failed">AI background generation failed</string>
+    <string name="jl_cwf_need_background">Select at least one background image</string>
+    <string name="jl_cwf_invalid_size">Watchface and thumbnail sizes must be greater than zero</string>
+    <string name="jl_cwf_invalid_widgets">Widget type or coordinate is invalid</string>
+    <string name="jl_cwf_invalid_color">Text color must be a valid #RRGGBB value</string>
+    <string name="jl_cwf_duplicate_widget">Each custom-watchface widget can only be selected once</string>
+    <string name="jl_ai_recording_from_watch">Recording on the watch…</string>
+    <string name="jl_ai_waiting_record">Getting recording from the watch…</string>
+    <string name="jl_alarms_add_demo">Add demo alarm (07:30 weekdays)(JieLi)</string>
+    <string name="jl_alarms_no_available_id">No available JieLi alarm ID (1-5)</string>
 </resources>

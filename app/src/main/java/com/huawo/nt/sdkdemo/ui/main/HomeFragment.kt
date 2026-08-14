@@ -22,12 +22,14 @@ import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateFragment
 import com.huawo.nt.sdkdemo.ui.features.AlarmsFragment
 import com.huawo.nt.sdkdemo.ui.features.AlbumTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.GoalsFragment
+import com.huawo.nt.sdkdemo.ui.features.JLOtaUpgradeFragment
 import com.huawo.nt.sdkdemo.ui.features.MusicTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.NotifyFragment
 import com.huawo.nt.sdkdemo.ui.features.OtaUpgradeFragment
 import com.huawo.nt.sdkdemo.ui.scan.ScanConnectFragment
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowDialogFragment
 import com.huawo.nt.sdkdemo.ui.watchface.WatchfaceFragment
+import com.huawo.nt.sdkdemo.ui.watchface.JLWatchfaceFragment
 import com.huawo.nt.sdkdemo.util.AppLanguage
 import com.huawo.nt.sdkdemo.util.LocaleHelper
 import kotlinx.coroutines.launch
@@ -95,8 +97,14 @@ class HomeFragment : Fragment() {
         binding.btnOta.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(OtaUpgradeFragment())
         }
+        binding.btnOtaJieli.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(JLOtaUpgradeFragment())
+        }
         binding.btnWatchface.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(WatchfaceFragment())
+        }
+        binding.btnWatchfaceJieli.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(JLWatchfaceFragment())
         }
 
         parentFragmentManager.setFragmentResultListener(
@@ -203,7 +211,9 @@ class HomeFragment : Fragment() {
         binding.btnAlbum.isEnabled = canFeature
         binding.btnAgps.isEnabled = canFeature
         binding.btnOta.isEnabled = canFeature
+        binding.btnOtaJieli.isEnabled = canFeature
         binding.btnWatchface.isEnabled = canFeature
+        binding.btnWatchfaceJieli.isEnabled = canFeature
 
         logAdapter.submit(state.logs)
     }

@@ -3,6 +3,7 @@ package com.huawo.nt.sdkdemo.data.repository
 import android.app.Application
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.huawo.nt.sdkdemo.data.local.BoundDeviceStore
 import com.huawo.nt.sdkdemo.data.model.BleActivity
 import com.huawo.nt.sdkdemo.data.model.BleDevice
@@ -22,6 +23,7 @@ import com.huawo.nt.sdkdemo.data.model.OtaTransferCallback
 import com.huawo.nt.sdkdemo.data.model.MusicStorage
 import com.huawo.nt.sdkdemo.data.model.MusicTransferCallback
 import com.huawo.nt.sdkdemo.data.model.OnlineWatchfaceTransferCallback
+import com.huawo.nt.sdkdemo.data.model.WlOnlineWatchfaceTransferCallback
 import com.huawo.nt.sdkdemo.data.model.ScanEvent
 import com.huawo.nt.sdkdemo.data.model.SdkException
 import com.huawo.nt.sdkdemo.util.AlbumBinConverter
@@ -63,6 +65,10 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ota.OtaData
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.UpgradeStatus
 import com.huawo.sdk.bluetoothsdk.wl.ota.WlOtaCallback
 import com.huawo.sdk.bluetoothsdk.wl.ota.WlOtaManager
+import com.huawo.sdk.bluetoothsdk.wl.media.MediaTransferConfig
+import com.huawo.sdk.bluetoothsdk.wl.media.WlMediaTransferCallback
+import com.huawo.sdk.bluetoothsdk.wl.media.WlMediaTransferManager
+import com.huawo.sdk.bluetoothsdk.wl.media.models.MediaFileInfo
 import com.huawo.watchface.Callback as SifliCallback
 import com.huawo.watchface.SifliWatchSDK
 import com.huawo.watchface.WatchfaceSDK
@@ -108,6 +114,10 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 class BleRepository(private val application: Application) {
+    private companion object {
+        const val TAG = "BleRepository"
+    }
+
     private val mainHandler = Handler(Looper.getMainLooper())
     private val boundStore = BoundDeviceStore(application)
 
@@ -696,6 +706,25 @@ class BleRepository(private val application: Application) {
     suspend fun addAlarm(alarm: Alarm) {
         awaitVoid("addAlarm failed") { cb ->
             BluetoothSDK.addAlarm(alarm, cb)
+        }
+    }
+
+    /**
+     * WL alarm creation uses the ID selected from the current device alarm list.
+     * Unlike [addAlarm], this calls addAlarmV2 directly and does not query an ID in the SDK.
+     */
+    suspend fun addAlarmV2(alarm: Alarm) {
+        require(alarm.id in 1..5) { "JL alarm ID must be in 1..5: ${alarm.id}" }
+        val time = alarm.firstTimePoint
+        Log.i(TAG, "addAlarmV2 enter id=${alarm.id} time=${time?.hour}:${time?.minute} snooze=${alarm.snooze}")
+        try {
+            awaitVoid("addAlarmV2 failed") { cb ->
+                BluetoothSDK.addAlarmV2(alarm, cb)
+            }
+            Log.i(TAG, "addAlarmV2 success id=${alarm.id}")
+        } catch (error: Exception) {
+            Log.e(TAG, "addAlarmV2 failed id=${alarm.id}", error)
+            throw error
         }
     }
 
@@ -1516,6 +1545,71 @@ class BleRepository(private val application: Application) {
                 },
             )
         }
+    }
+
+    /**
+     * jieli online watchface uses the A3 media channel with type 0x04. The SDK owns packet framing,
+     * validation and retry behavior; this demo layer only validates caller input and bridges the
+     * terminal device result back to the main thread through [callback].
+     */
+    fun pushWlOnlineWatchface(
+        packageFile: File,
+        watchfaceName: String,
+        callback: WlOnlineWatchfaceTransferCallback,
+    ) {
+        if (!isConnected()) {
+            Log.w(TAG, "pushWlOnlineWatchface rejected: BLE disconnected")
+            callback.onFail(408, "BLE disconnected")
+            return
+        }
+        if (watchfaceName.isBlank()) {
+            Log.w(TAG, "pushWlOnlineWatchface rejected: blank name")
+            callback.onFail(-6, "WL watchface name is blank")
+            return
+        }
+        if (!packageFile.isFile || packageFile.length() <= 1L) {
+            Log.w(TAG, "pushWlOnlineWatchface rejected: invalid file=${packageFile.absolutePath}")
+            callback.onFail(-3, "WL watchface package missing or empty: ${packageFile.absolutePath}")
+            return
+        }
+        val fileInfo =
+            MediaFileInfo.fromFile(packageFile.absolutePath, watchfaceName, 0x00)
+                ?: run {
+                    callback.onFail(-3, "WL MediaFileInfo create failed: ${packageFile.absolutePath}")
+                    return
+                }
+        Log.i(TAG, "pushWlOnlineWatchface start name=$watchfaceName bytes=${packageFile.length()}")
+        WlMediaTransferManager.getInstance().transfer(
+            MediaTransferConfig.MEDIA_TYPE_WATCH_ONLINE,
+            listOf(fileInfo),
+            object : WlMediaTransferCallback {
+                override fun onReady() {
+                    mainHandler.post {
+                        Log.i(TAG, "pushWlOnlineWatchface ready name=$watchfaceName")
+                        callback.onReady()
+                    }
+                }
+
+                override fun onProgress(progress: Float) {
+                    mainHandler.post { callback.onProgress(progress.coerceIn(0f, 1f)) }
+                }
+
+                override fun onSuccess() {
+                    mainHandler.post {
+                        Log.i(TAG, "pushWlOnlineWatchface success name=$watchfaceName")
+                        callback.onSuccess()
+                    }
+                }
+
+                override fun onFail(code: Int, message: String?) {
+                    mainHandler.post {
+                        val detail = message.orEmpty().ifBlank { "WL A3 transfer failed" }
+                        Log.e(TAG, "pushWlOnlineWatchface failed code=$code name=$watchfaceName msg=$detail")
+                        callback.onFail(code, detail)
+                    }
+                }
+            },
+        )
     }
 
     // endregion

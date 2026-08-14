@@ -44,3 +44,15 @@ interface OnlineWatchfaceTransferCallback {
     fun onSuccess()
     fun onFail(code: Int, message: String)
 }
+
+/**
+ * jieli  online-watchface transfer callbacks.
+ * [onReady] only means that the SDK accepted the transfer; [onSuccess] is emitted after the
+ * watch completes the terminal result, so callers must keep their install UI locked until then.
+ */
+interface WlOnlineWatchfaceTransferCallback {
+    fun onReady()
+    fun onProgress(progress: Float)
+    fun onSuccess()
+    fun onFail(code: Int, message: String)
+}

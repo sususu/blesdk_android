@@ -295,6 +295,30 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/feature_watchface" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_ota_jieli"
+                style="@style/Widget.SDKDemo.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:text="@string/feature_ota_jl" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_watchface_jieli"
+                style="@style/Widget.SDKDemo.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:text="@string/feature_watchface_jl" />
+        </LinearLayout>
     </LinearLayout>
 
         <TextView

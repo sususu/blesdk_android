@@ -10,6 +10,7 @@ import com.huawo.nt.sdkdemo.ui.features.AlarmsViewModel
 import com.huawo.nt.sdkdemo.ui.features.AlbumTransferViewModel
 import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateViewModel
 import com.huawo.nt.sdkdemo.ui.features.GoalsViewModel
+import com.huawo.nt.sdkdemo.ui.features.JLOtaUpgradeViewModel
 import com.huawo.nt.sdkdemo.ui.features.MusicTransferViewModel
 import com.huawo.nt.sdkdemo.ui.features.NotifyViewModel
 import com.huawo.nt.sdkdemo.ui.features.OtaUpgradeViewModel
@@ -17,6 +18,7 @@ import com.huawo.nt.sdkdemo.ui.main.HomeViewModel
 import com.huawo.nt.sdkdemo.ui.scan.ScanViewModel
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowViewModel
 import com.huawo.nt.sdkdemo.ui.watchface.OnlineWatchfaceViewModel
+import com.huawo.nt.sdkdemo.ui.watchface.JLOnlineWatchfaceViewModel
 
 class ViewModelFactory(
     private val application: Application = SdkDemoApp.instance,
@@ -47,8 +49,12 @@ class ViewModelFactory(
                 AgpsUpdateViewModel(application, repository) as T
             modelClass.isAssignableFrom(OtaUpgradeViewModel::class.java) ->
                 OtaUpgradeViewModel(application, repository) as T
+            modelClass.isAssignableFrom(JLOtaUpgradeViewModel::class.java) ->
+                JLOtaUpgradeViewModel(application, repository) as T
             modelClass.isAssignableFrom(OnlineWatchfaceViewModel::class.java) ->
                 OnlineWatchfaceViewModel(application, repository) as T
+            modelClass.isAssignableFrom(JLOnlineWatchfaceViewModel::class.java) ->
+                JLOnlineWatchfaceViewModel(application, repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
         }
     }

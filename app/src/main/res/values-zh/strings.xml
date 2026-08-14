@@ -452,16 +452,43 @@
     <string name="album_cancelled">已取消传输</string>
     <string name="album_storage_result">空闲 %1$d KB / 设备文件数 %2$d / ID: %3$s</string>
     <string name="album_size_hint">转换尺寸: %1$d×%2$d</string>
-    <string name="sync_data_jl">同步数据（杰里）</string>
-    <string name="status_syncing_jl">正在同步杰里数据…</string>
-    <string name="status_sync_done_jl">杰里同步完成</string>
-    <string name="status_sync_failed_jl">杰里同步失败: %1$s</string>
-    <string name="log_sync_jl_start">杰里同步开始: mac=%1$s</string>
-    <string name="log_sync_jl_route">杰里同步路径: 步数、心率、睡眠、HRV、血氧、压力 V2</string>
-    <string name="log_sync_jl_callback">杰里回调: %1$s, 条数=%2$d</string>
-    <string name="log_sync_jl_delete_start">杰里删除开始: %1$s</string>
-    <string name="log_sync_jl_delete_done">杰里删除成功: %1$s</string>
-    <string name="log_sync_jl_delete_failed">杰里删除失败: %1$s, 错误=%2$s</string>
-    <string name="log_sync_jl_done">杰里同步完成: %1$s</string>
-    <string name="log_sync_jl_failed">杰里同步失败: %1$s</string>
+    <string name="sync_data_jl">同步数据（杰理）</string>
+    <string name="status_syncing_jl">正在同步杰理数据…</string>
+    <string name="status_sync_done_jl">杰理同步完成</string>
+    <string name="status_sync_failed_jl">杰理同步失败: %1$s</string>
+    <string name="log_sync_jl_start">杰理同步开始: mac=%1$s</string>
+    <string name="log_sync_jl_route">杰理同步路径: 步数、心率、睡眠、HRV、血氧、压力 V2</string>
+    <string name="log_sync_jl_callback">杰理回调: %1$s, 条数=%2$d</string>
+    <string name="log_sync_jl_delete_start">杰理删除开始: %1$s</string>
+    <string name="log_sync_jl_delete_done">杰理删除成功: %1$s</string>
+    <string name="log_sync_jl_delete_failed">杰理删除失败: %1$s, 错误=%2$s</string>
+    <string name="log_sync_jl_done">杰理同步完成: %1$s</string>
+    <string name="log_sync_jl_failed">杰理同步失败: %1$s</string>
+    <string name="feature_ota_jl">OTA（杰理）</string>
+    <string name="feature_watchface_jl">表盘（杰理）</string>
+    <string name="jl_owf_invalid_package">杰理表盘名称、文件地址或 MD5 缺失</string>
+    <string name="jl_cwf_size">表盘尺寸</string>
+    <string name="jl_cwf_background">背景图片</string>
+    <string name="jl_cwf_ai_prompt">AI 图片提示词</string>
+    <string name="jl_cwf_generate_ai">生成 AI 背景图</string>
+    <string name="jl_cwf_options">显示与指针选项</string>
+    <string name="jl_cwf_widgets">组件类型与坐标</string>
+    <string name="jl_cwf_query_storage">查询表盘可用空间</string>
+    <string name="jl_cwf_install">安装自定义表盘</string>
+    <string name="jl_cwf_storage_result">可用空间：%1$d KB，最多 %2$d 张图片</string>
+    <string name="jl_cwf_storage_failed">查询表盘可用空间失败</string>
+    <string name="jl_cwf_image_limit">当前可用空间最多支持 %1$d 张背景图</string>
+    <string name="jl_cwf_images_selected">已选择图片：%1$d / %2$d</string>
+    <string name="jl_cwf_ai_prompt_required">请先输入 AI 图片提示词</string>
+    <string name="jl_cwf_ai_generating">正在生成 AI 背景图…</string>
+    <string name="jl_cwf_ai_failed">AI 背景图生成失败</string>
+    <string name="jl_cwf_need_background">请至少选择一张背景图</string>
+    <string name="jl_cwf_invalid_size">表盘和缩略图尺寸必须大于 0</string>
+    <string name="jl_cwf_invalid_widgets">组件类型或坐标无效</string>
+    <string name="jl_cwf_invalid_color">文字颜色必须为有效的 #RRGGBB</string>
+    <string name="jl_cwf_duplicate_widget">每个自定义表盘组件只能选择一次</string>
+    <string name="jl_ai_recording_from_watch">正在由手表录音…</string>
+    <string name="jl_ai_waiting_record">正在从手表获取录音…</string>
+    <string name="jl_alarms_add_demo">添加示例闹钟（工作日 07:30）（杰理）</string>
+    <string name="jl_alarms_no_available_id">没有可用的杰里闹钟 ID（1-5）</string>
 </resources>

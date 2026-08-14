@@ -100,6 +100,7 @@ class AlarmsFragment : BaseFeatureFragment() {
     override fun buildActions(container: LinearLayout) {
         addActionButton(container, R.string.alarms_get) { viewModel.getAlarms() }
         addActionButton(container, R.string.alarms_add_demo) { viewModel.addDemoAlarm() }
+        addActionButton(container, R.string.jl_alarms_add_demo) { viewModel.addJlDemoAlarm() }
         addActionButton(container, R.string.alarms_delete_all) { viewModel.deleteAllAlarms() }
         addActionButton(container, R.string.reminders_get_sedentary) { viewModel.getSedentary() }
         addActionButton(container, R.string.reminders_set_sedentary) { viewModel.setSedentary() }
