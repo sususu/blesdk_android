@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.AudioFormat
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -30,8 +31,11 @@ import com.huawo.nt.sdkdemo.util.AppLanguage
 import com.huawo.nt.sdkdemo.util.LocaleHelper
 import com.huawo.nt.sdkdemo.util.PcmPlayer
 import com.huawo.sdk.bluetoothsdk.BluetoothSDK
+import com.huawo.sdk.bluetoothsdk.HwPlatformType
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.DeviceInfoCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.StringValueCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.AppStatus
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.DeviceInfo
 import com.huawo.watchface.custom.SifliCustomWatchface
 import java.io.File
 import java.text.SimpleDateFormat
@@ -39,86 +43,68 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * AI Watchface demo tab (third tab under [WatchfaceFragment]).
+ * AI Watchface demo tab (under [WatchfaceFragment] / AI Center entry).
  *
- * ## What this screen demonstrates
- * End-to-end integration of the Huawo **AI SDK** (`com.huawo.ai.AiCenter`) for AI-generated
- * watchfaces:
- * 1. Configure device parameters (AFlash device id + screen / thumbnail geometry).
- * 2. Start `AiCenter` so BLE AI events from the watch are handled.
- * 3. Show generated **thumbnail** and **background** bitmaps when the cloud / pipeline returns them.
- * 4. Optional phone-side PCM record / play / share for debugging ASR / audio paths.
+ * ## Recording paths (must support both — same as HaWoFit)
  *
- * ## Typical product flow (watch-driven)
+ * Firmware reports [DeviceInfo.isRecordFromDevice]. Product apps (HaWoFit `MainActivity.initAIWatchFace`
+ * / `WatchfaceEditV5Activity`) then call [AiCenter.setRecordFromDevice]:
+ *
+ * | Path | `recordFromDevice` | How audio is captured |
+ * |------|--------------------|------------------------|
+ * | **Watch mic** | `true` | Watch records; AiCenter pulls PCM via BLE (`getAiRecordData` / JieLi V2). No phone SCO. |
+ * | **Phone / App** | `false` | Phone [AudioRecord]. If `speakOnWatch=true`, [BluetoothScoManager] opens **Bluetooth SCO** so the watch HFP mic is the Android input device. |
+ *
+ * [AFlashVoiceRecorderService] locks the source at `startRecording()`:
+ * - JieLi + `recordFromDevice` → device JieLi path
+ * - Non-JieLi + `recordFromDevice` + `speakOnWatch` → legacy device path
+ * - Otherwise → App path (`speakOnWatch` → SCO + `VoiceRecorderService`; else phone mic)
+ *
+ * This demo exposes **Auto / Watch / Phone mic / Watch via SCO** so both product paths can be tested.
+ * **Auto** mirrors HaWoFit: `JIELI || firmware.recordFromDevice` → watch; else phone path + [AiCenter.startRecordService].
+ *
+ * ## Platform
+ * [AiDeviceInfo.setPlatformType] selects install/record handlers (SIFLI QJS vs JieLi WL, etc.).
+ * Auto uses `protocolVersion >= 100` → [HwPlatformType.JIELI], else [HwPlatformType.SIFLI]
+ * (same idea as deprecated `setProtocolVersion`).
+ *
+ * ## Typical watch-driven flow
  * ```
- * App connected → setDeviceInfo + startWorking
- *      → user opens AI Watchface on the watch
- *      → watch records voice (or phone records for debug)
- *      → AFlash cloud generates image
- *      → deviceAiImageCallback / devicePerviewImageCallback update UI
- *      → watch requests install → OTA progress → deviceOtaWatchfaceDone
+ * connect → setDeviceInfo + setRecordFromDevice + startWorking
+ *   → watch opens AI Watchface → records (device or SCO)
+ *   → cloud image → deviceAiImageCallback / devicePerviewImageCallback
+ *   → install OTA → deviceOtaWatchfaceDone
  * ```
  *
- * ## Reference
- * Logic mirrors HUAWO-TOOL `AiTestActivity`. UI uses this demo's Material style
- * (same patterns as [CustomWatchfaceFragment]).
- *
- * ## Prerequisites / caveats
- * - BluetoothSDK must already be connected (bind/sync done on Home).
- * - AARs required: `ai-*.aar`, `QW_release_*.aar`, `jl_pack_resource_*.aar`, `BmpConvert_*.aar`,
- *   plus existing BluetoothSDK / qjs-watchface / Sifli stack.
- * - Runtime: `RECORD_AUDIO` (and declare `FOREGROUND_SERVICE_MICROPHONE` for AI voice service).
- * - Device ID is the AFlash / vendor id used for cloud auth — not the BLE MAC.
- * - Width / height / corner **must match the real watch panel**; wrong values crop or reject OTA.
- * - Call [AiCenter.destroy] when this fragment is fully destroyed (not only onDestroyView),
- *   because ViewPager may recreate the view while keeping the fragment instance briefly.
- *
- * Implements:
- * - [AiEvent] — watch / pipeline callbacks (images, OTA, enter/exit AI mode, record start/stop).
- * - [IErrorMessageProvider] — human-readable strings for AI / AFlash / ASR error codes.
+ * ## Caveats
+ * - SCO needs classic Bluetooth / HFP to the watch, not only BLE GATT.
+ * - Phone / SCO paths need `RECORD_AUDIO` (+ `FOREGROUND_SERVICE_MICROPHONE` on API 34+).
+ * - Watch-mic path does not need phone mic permission for watch-triggered AI.
+ * - Geometry (W/H/R) must match the real panel; wrong values break packaging / OTA.
  */
 class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
 
-    // ViewBinding is cleared in onDestroyView; always null-check before touching UI from async callbacks.
     private var _binding: FragmentAiWatchfaceBinding? = null
     private val binding get() = _binding!!
 
-    /** All AI / BLE callbacks may arrive off the main thread — marshal UI updates here. */
     private val mainHandler = Handler(Looper.getMainLooper())
-
     private val dateFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
-
-    /**
-     * In-memory log buffer shown in the bottom panel.
-     * Capped at ~12k chars (same idea as AiTestActivity) to avoid unbounded TextView growth.
-     */
     private val logBuilder = StringBuilder()
 
-    /** Plays `{workspace}/record.pcm` (16 kHz mono PCM16 from AI recorder). */
     private var pcmPlayer: PcmPlayer? = null
-
-    /**
-     * Phone-side AFlash recorder used only for **debug** (button "Record").
-     * Production AI watchface recording usually happens on the watch; AiCenter still owns the
-     * primary voice pipeline after [AiCenter.startWorking].
-     */
     private var voiceRecorder: AFlashVoiceRecorderService? = null
-
-    /** Whether [voiceRecorder] is currently capturing from the phone mic. */
     private var recording = false
-
-    /**
-     * `true` after a successful [startAiCenter] (init + setDeviceInfo + startWorking).
-     * Play / share / phone-record require this so workspace and handlers exist.
-     */
     private var aiStarted = false
 
     /**
-     * Common watch panel presets (background size + thumbnail size).
-     *
-     * Fields: label, bgW, bgH, bgCornerRadius, thumbW, thumbH, thumbCornerRadius.
-     * Pick values from the product spec / firmware; wrong geometry breaks packaging.
+     * Last [DeviceInfo.isRecordFromDevice] from firmware (HaWoFit stores this on bind/connect).
+     * Used by [RecordMode.AUTO].
      */
+    private var firmwareRecordFromDevice: Boolean? = null
+
+    /** Last [DeviceInfo.getProtocolVersion]; used to infer JIELI vs SIFLI when platform = Auto. */
+    private var firmwareProtocolVersion: Int? = null
+
     private val sizePresets =
         listOf(
             SizePreset("480 x 480", 480, 480, 240, 264, 264, 132),
@@ -126,23 +112,41 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
             SizePreset("410 x 502", 410, 502, 108, 200, 244, 50),
         )
 
+    private val recordModes = RecordMode.entries
+    private val platformChoices = PlatformChoice.entries
+
     /**
-     * Runtime mic permission for phone recording.
-     * Note: AiCenter's internal VoiceRecorderService may also need this; grant before heavy AI use.
+     * Pending action after mic / FGS-mic / notification permission result.
+     * Phone & SCO paths need [AiCenter.startRecordService] only when RECORD_AUDIO is granted.
      */
-    private val requestRecordAudio =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) startPhoneRecord()
-            else {
+    private enum class PendingMicAction {
+        NONE,
+        START_RECORD_SERVICE,
+        DEBUG_RECORD,
+    }
+
+    private var pendingMicAction = PendingMicAction.NONE
+
+    private val requestMicPermissions =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            val audioOk = result[Manifest.permission.RECORD_AUDIO] == true || hasRecordAudio()
+            val action = pendingMicAction
+            pendingMicAction = PendingMicAction.NONE
+            if (action == PendingMicAction.NONE) return@registerForActivityResult
+            if (!audioOk) {
                 Toast.makeText(requireContext(), R.string.ai_wf_mic_denied, Toast.LENGTH_SHORT)
                     .show()
+                appendLine(getString(R.string.ai_wf_mic_denied))
+                return@registerForActivityResult
+            }
+            appendLine(getString(R.string.ai_wf_mic_granted))
+            when (action) {
+                PendingMicAction.START_RECORD_SERVICE -> startRecordServiceSafe()
+                PendingMicAction.DEBUG_RECORD -> startDebugRecord()
+                PendingMicAction.NONE -> Unit
             }
         }
 
-    /**
-     * Bridge AiCenter's [ILog] into the on-screen log panel.
-     * Useful when diagnosing auth, ASR, image download, and OTA packaging issues.
-     */
     private val aiLog =
         object : ILog {
             override fun d(tag: String?, msg: String) = appendLog("D", tag, msg)
@@ -165,29 +169,26 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        // AiCenter / SpUtils expect an initialized SharedPreferences store ("AiCenterSP").
         SpUtils.init(requireContext().applicationContext)
         setupSizeSpinner()
+        setupRecordModeSpinner()
+        setupPlatformSpinner()
         restoreFields()
+        binding.tvFirmwareRecordHint.setText(R.string.ai_wf_fw_record_unknown)
         binding.tvStatus.setText(R.string.feature_ready)
 
-        // Apply = push edited AiDeviceInfo into AiCenter (and start if not yet started).
         binding.btnApply.setOnClickListener { applyDeviceInfo() }
-        // Share / Play operate on workspace/record.pcm written by the AI recorder pipeline.
         binding.btnShare.setOnClickListener { sharePcm() }
         binding.btnPlay.setOnClickListener { playPcm() }
-        binding.btnRecord.setOnClickListener { toggleRecord() }
+        binding.btnRecord.setOnClickListener { toggleDebugRecord() }
 
-        // Prefer the id reported by the connected firmware; falls back to SpUtils cache on failure.
         fetchDeviceId()
-        // Auto-start when the tab opens and BLE is connected (same as AiTestActivity onCreate).
+        fetchDeviceInfoForRecordCapability()
         startAiCenter()
     }
 
     override fun onDestroyView() {
-        // Stop phone debug recording and release player; do NOT destroy AiCenter here —
-        // ViewPager2 may destroy the view while the fragment instance still lives.
-        stopPhoneRecordInternal()
+        stopDebugRecordInternal()
         pcmPlayer?.stop()
         pcmPlayer = null
         _binding = null
@@ -195,7 +196,6 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
     }
 
     override fun onDestroy() {
-        // Full teardown: unregister BLE AI listeners, stop foreground recorder service, free workspace.
         if (aiStarted) {
             runCatching { AiCenter.getInstance().destroy() }
             aiStarted = false
@@ -204,7 +204,7 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
     }
 
     // -------------------------------------------------------------------------
-    // UI helpers — size presets & persisted fields
+    // Spinners
     // -------------------------------------------------------------------------
 
     private fun setupSizeSpinner() {
@@ -223,12 +223,31 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
                     position: Int,
                     id: Long,
                 ) {
-                    // Overwrites the six numeric fields; user can still fine-tune afterward.
                     applyPreset(sizePresets[position])
                 }
 
                 override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
             }
+    }
+
+    private fun setupRecordModeSpinner() {
+        binding.spinnerRecordMode.adapter =
+            ArrayAdapter(
+                requireContext(),
+                android.R.layout.simple_spinner_dropdown_item,
+                recordModes.map { getString(it.labelRes) },
+            )
+        binding.spinnerRecordMode.setSelection(RecordMode.AUTO.ordinal)
+    }
+
+    private fun setupPlatformSpinner() {
+        binding.spinnerPlatform.adapter =
+            ArrayAdapter(
+                requireContext(),
+                android.R.layout.simple_spinner_dropdown_item,
+                platformChoices.map { getString(it.labelRes) },
+            )
+        binding.spinnerPlatform.setSelection(PlatformChoice.AUTO.ordinal)
     }
 
     private fun applyPreset(preset: SizePreset) {
@@ -240,10 +259,6 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         binding.etThumbCorner.setText(preset.thumbCorner.toString())
     }
 
-    /**
-     * Restore last-used device id / sizes from AiCenter's [SpUtils] keys
-     * (shared with HUAWO-TOOL AiTestActivity: etID, etWidth, …).
-     */
     private fun restoreFields() {
         val id = SpUtils.getString("etID", "")
         if (id.isNotBlank()) binding.etDeviceId.setText(id)
@@ -255,16 +270,56 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         binding.etThumbCorner.setText(SpUtils.getInt("etThumbnailRadius", 132).toString())
     }
 
+    private fun selectedRecordMode(): RecordMode =
+        recordModes.getOrElse(binding.spinnerRecordMode.selectedItemPosition) { RecordMode.AUTO }
+
+    private fun selectedPlatformChoice(): PlatformChoice =
+        platformChoices.getOrElse(binding.spinnerPlatform.selectedItemPosition) { PlatformChoice.AUTO }
+
     // -------------------------------------------------------------------------
-    // Device ID from firmware
+    // Firmware DeviceInfo → record capability + platform hint
     // -------------------------------------------------------------------------
 
     /**
-     * Reads the vendor device id via [BluetoothSDK.getDeviceID].
-     *
-     * This id is what AFlash / cloud auth expects in [AiDeviceInfo.setId].
-     * If the call fails (not connected, unsupported opcode, etc.), keep the cached SpUtils value.
+     * Loads [BluetoothSDK.getDeviceInfo] to read `recordFromDevice` and `protocolVersion`.
+     * HaWoFit persists these on connect/bind; the demo reads them live for Auto mode.
      */
+    private fun fetchDeviceInfoForRecordCapability() {
+        BluetoothSDK.getDeviceInfo(
+            object : DeviceInfoCallback() {
+                override fun onSuccess(deviceInfo: DeviceInfo) {
+                    mainHandler.post {
+                        if (_binding == null) return@post
+                        firmwareRecordFromDevice = deviceInfo.isRecordFromDevice
+                        firmwareProtocolVersion = deviceInfo.protocolVersion
+                        val inferred = inferPlatform(deviceInfo.protocolVersion)
+                        binding.tvFirmwareRecordHint.text =
+                            getString(
+                                R.string.ai_wf_fw_record_hint,
+                                deviceInfo.isRecordFromDevice.toString(),
+                                deviceInfo.protocolVersion,
+                                inferred.name,
+                            )
+                        appendLine(
+                            "DeviceInfo recordFromDevice=${deviceInfo.isRecordFromDevice} " +
+                                "protocol=${deviceInfo.protocolVersion} inferredPlatform=$inferred",
+                        )
+                        // Re-apply Auto path once firmware flags are known.
+                        if (aiStarted && selectedRecordMode() == RecordMode.AUTO) {
+                            applyRecordingPath(logResult = true)
+                        }
+                    }
+                }
+
+                override fun onFail(code: Int) {
+                    mainHandler.post {
+                        appendLine("getDeviceInfo failed: $code (Auto mode falls back to watch if JIELI forced)")
+                    }
+                }
+            },
+        )
+    }
+
     private fun fetchDeviceId() {
         binding.tvStatus.setText(R.string.ai_wf_fetching_id)
         BluetoothSDK.getDeviceID(
@@ -292,22 +347,168 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
     }
 
     // -------------------------------------------------------------------------
+    // Resolve platform + recordFromDevice (HaWoFit-compatible)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Infer platform from protocol version (AI SDK historically used ≥100 for WL/JieLi).
+     * Prefer an explicit spinner choice in demos when the product is known.
+     */
+    private fun inferPlatform(protocolVersion: Int?): HwPlatformType =
+        if ((protocolVersion ?: 0) >= 100) HwPlatformType.JIELI else HwPlatformType.SIFLI
+
+    private fun resolvePlatform(): HwPlatformType =
+        when (selectedPlatformChoice()) {
+            PlatformChoice.AUTO -> inferPlatform(firmwareProtocolVersion)
+            PlatformChoice.SIFLI -> HwPlatformType.SIFLI
+            PlatformChoice.JIELI -> HwPlatformType.JIELI
+            PlatformChoice.REALTEK -> HwPlatformType.REALTEK
+        }
+
+    /**
+     * Whether AiCenter should use watch-side recording.
+     *
+     * Auto (HaWoFit):
+     * `recordFromDevice = (platform == JIELI) || firmware.recordFromDevice`
+     * JieLi products always use the device path in production init.
+     */
+    private fun resolveRecordFromDevice(platform: HwPlatformType): Boolean =
+        when (selectedRecordMode()) {
+            RecordMode.AUTO ->
+                platform == HwPlatformType.JIELI || (firmwareRecordFromDevice == true)
+            RecordMode.WATCH_DEVICE -> true
+            RecordMode.PHONE_MIC, RecordMode.WATCH_SCO -> false
+        }
+
+    /**
+     * For the **debug Record button** only: whether [AFlashVoiceRecorderService] should open SCO.
+     *
+     * - `true` → [BluetoothScoManager.startSco] + foreground [VoiceRecorderService] (watch HFP mic).
+     * - `false` → phone built-in mic ([VoiceRecorder] directly).
+     *
+     * Production watch-triggered AI uses AiCenter's internal handler (`speakOnWatch=true` when App path).
+     */
+    private fun speakOnWatchForDebugRecord(): Boolean =
+        when (selectedRecordMode()) {
+            RecordMode.WATCH_SCO -> true
+            RecordMode.PHONE_MIC -> false
+            RecordMode.WATCH_DEVICE -> false
+            RecordMode.AUTO -> !resolveRecordFromDevice(resolvePlatform())
+        }
+
+    /**
+     * Push recording-path flags into AiCenter (call after init / when spinner changes via Apply).
+     *
+     * If App path (`recordFromDevice=false`): request mic (+ FGS mic / notifications as needed),
+     * then [AiCenter.startRecordService] (same idea as HaWoFit when app is in foreground).
+     */
+    private fun applyRecordingPath(logResult: Boolean) {
+        val platform = resolvePlatform()
+        val fromDevice = resolveRecordFromDevice(platform)
+        AiCenter.getInstance().setRecordFromDevice(fromDevice)
+        if (!fromDevice) {
+            ensureMicThen(PendingMicAction.START_RECORD_SERVICE)
+        }
+        if (logResult) {
+            val speak = speakOnWatchForDebugRecord()
+            val line =
+                getString(
+                    R.string.ai_wf_applied_path,
+                    fromDevice.toString(),
+                    platform.name,
+                    speak.toString(),
+                )
+            appendLine(line)
+            binding.tvStatus.text = line
+        }
+    }
+
+    private fun hasRecordAudio(): Boolean =
+        ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.RECORD_AUDIO,
+        ) == PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Permissions needed before starting the mic foreground recorder (App / SCO path).
+     * - Always: [Manifest.permission.RECORD_AUDIO]
+     * - API 33+: [Manifest.permission.POST_NOTIFICATIONS] (FGS notification)
+     * - API 34+: [Manifest.permission.FOREGROUND_SERVICE_MICROPHONE] (HaWoFit MainActivity)
+     */
+    private fun micPermissionsToRequest(): Array<String> {
+        val list = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            list += Manifest.permission.POST_NOTIFICATIONS
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            list += Manifest.permission.FOREGROUND_SERVICE_MICROPHONE
+        }
+        return list
+            .filter {
+                ContextCompat.checkSelfPermission(requireContext(), it) !=
+                    PackageManager.PERMISSION_GRANTED
+            }
+            .toTypedArray()
+    }
+
+    /**
+     * Request mic-related permissions if missing, then run [action].
+     * Watch-mic path should not call this for production AI; App / SCO must.
+     */
+    private fun ensureMicThen(action: PendingMicAction) {
+        val missing = micPermissionsToRequest()
+        val fgsMicMissing =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+                ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.FOREGROUND_SERVICE_MICROPHONE,
+                ) != PackageManager.PERMISSION_GRANTED
+        // Block App/SCO until RECORD_AUDIO (and API 34+ FGS mic) are granted — same as HaWoFit.
+        val mustRequest = !hasRecordAudio() || fgsMicMissing
+        if (mustRequest && missing.isNotEmpty()) {
+            appendLine(getString(R.string.ai_wf_requesting_mic))
+            pendingMicAction = action
+            requestMicPermissions.launch(missing)
+            return
+        }
+        when (action) {
+            PendingMicAction.START_RECORD_SERVICE -> startRecordServiceSafe()
+            PendingMicAction.DEBUG_RECORD -> startDebugRecord()
+            PendingMicAction.NONE -> Unit
+        }
+        // Non-blocking: still ask for notification permission if missing (API 33+).
+        val softOnly =
+            missing
+                .filter { it == Manifest.permission.POST_NOTIFICATIONS }
+                .toTypedArray()
+        if (softOnly.isNotEmpty()) {
+            pendingMicAction = PendingMicAction.NONE
+            requestMicPermissions.launch(softOnly)
+        }
+    }
+
+    private fun startRecordServiceSafe() {
+        if (!hasRecordAudio()) {
+            appendLine(getString(R.string.ai_wf_err_no_mic))
+            return
+        }
+        AiCenter.getInstance().startRecordService()
+        appendLine(getString(R.string.ai_wf_record_service_started))
+    }
+
+    // -------------------------------------------------------------------------
     // AiCenter lifecycle
     // -------------------------------------------------------------------------
 
     /**
-     * Initialize and start the AI SDK.
-     *
-     * Order (device-mic path used by this demo):
-     * 1. [BluetoothSDK.setAppStatus] Foreground
-     * 2. [AiCenter.init]`(ctx, false)` — do **not** auto-start phone recorder service
-     * 3. setAiEvent / setErrorMessageProvider / setLog / setCallback
-     * 4. [AiCenter.setKeyAndSecret]
-     * 5. [AiCenter.setRecordFromDevice]`(true)` — always use watch mic (no RECORD_AUDIO / FGS)
-     * 6. [AiCenter.startWorking]
-     * 7. [AiCenter.setDeviceInfo] — required (missing → 80051)
-     *
-     * [AiCenter.setApplication] is done in [com.huawo.nt.sdkdemo.SdkDemoApp].
+     * Init order (compatible with HaWoFit + both record paths):
+     * 1. Foreground app status
+     * 2. [AiCenter.init]`(ctx, false)` — do not auto-start recorder until path is known
+     * 3. Event / error / log / auth callback
+     * 4. Key/secret
+     * 5. [applyRecordingPath] — setRecordFromDevice + optional startRecordService
+     * 6. [setDeviceInfo] with explicit [HwPlatformType]
+     * 7. [startWorking]
      */
     private fun startAiCenter() {
         val device = BluetoothSDK.getConnectedDevice()
@@ -324,61 +525,41 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         AiCenter.getInstance().setLog(aiLog)
         AiCenter.getInstance().setCallback(
             object : AiCenter.Callback {
-                /** Cloud / AFlash authorization succeeded — AI features can proceed. */
                 override fun authorizeCompleted() {
                     appendLine("authorizeCompleted")
                 }
 
-                /** Auth failed (bad key, network, device id, etc.). Check logs and device id. */
                 override fun authorizeError(code: Int, msg: String?) {
                     appendLine("authorizeError code=$code msg=$msg")
                 }
             },
         )
-        // Same demo key/secret as product demo apps (replace with vendor credentials in production).
         AiCenter.getInstance().setKeyAndSecret(AI_DEMO_KEY, AI_DEMO_SECRET)
-        // Fixed: watch-side microphone — no phone RECORD_AUDIO / startRecordService.
-        AiCenter.getInstance().setRecordFromDevice(true)
-        AiCenter.getInstance().startWorking()
+        applyRecordingPath(logResult = true)
         AiCenter.getInstance().setDeviceInfo(buildDeviceInfo())
+        AiCenter.getInstance().startWorking()
         aiStarted = true
         appendLine(getString(R.string.ai_wf_started))
         binding.tvStatus.setText(R.string.ai_wf_working)
     }
 
-    /**
-     * "Apply" button: persist UI fields and push a fresh [AiDeviceInfo] into AiCenter.
-     *
-     * Call this after changing resolution / device id / reconnecting.
-     * If AI was never started (e.g. opened tab before connect), tries [startAiCenter] first.
-     */
     private fun applyDeviceInfo() {
         if (!aiStarted) {
             startAiCenter()
             if (!aiStarted) return
         } else {
-            // Re-register listeners in case stopWorking was called elsewhere.
             AiCenter.getInstance().startWorking()
         }
+        applyRecordingPath(logResult = true)
         val info = buildDeviceInfo(persist = true)
         AiCenter.getInstance().setDeviceInfo(info)
         appendLine(getString(R.string.ai_wf_device_info, info.toString()))
-        binding.tvStatus.setText(R.string.ai_wf_info_applied)
         Toast.makeText(requireContext(), R.string.ai_wf_info_applied, Toast.LENGTH_SHORT).show()
     }
 
     /**
-     * Build [AiDeviceInfo] from the form (and optionally persist to SpUtils).
-     *
-     * Field meanings:
-     * - **mac / type**: from connected BLE device (identity / product model for cloud).
-     * - **id**: AFlash device id (from getDeviceID or manual input).
-     * - **width / height / cornerRadius**: full-screen background asset size & rounding.
-     * - **thumbnail***: list/preview icon size & rounding (smaller than panel).
-     * - **currentLocale**: `"zh"` / `"en"` — affects cloud prompt / TTS language.
-     *
-     * For some WL-protocol watches you may also need `setProtocolVersion(100+)` (not exposed here;
-     * add if your product requires it — see AI SDK ReadMe).
+     * Build [AiDeviceInfo]. Always sets [AiDeviceInfo.setPlatformType] explicitly so install
+     * handlers do not depend on deprecated protocol-only inference alone.
      */
     private fun buildDeviceInfo(persist: Boolean = false): AiDeviceInfo {
         val id = binding.etDeviceId.text?.toString()?.trim().orEmpty()
@@ -388,6 +569,7 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         val thumbW = binding.etThumbW.text?.toString()?.toIntOrNull() ?: 264
         val thumbH = binding.etThumbH.text?.toString()?.toIntOrNull() ?: 264
         val thumbCorner = binding.etThumbCorner.text?.toString()?.toIntOrNull() ?: 132
+        val platform = resolvePlatform()
 
         if (persist) {
             SpUtils.putString("etID", id)
@@ -411,10 +593,10 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
             setThumbnailHeight(thumbH)
             setThumbnailCornerRadius(thumbCorner)
             setCurrentLocale(aiLocale())
+            setPlatformType(platform)
         }
     }
 
-    /** Map demo app language setting → AI locale string expected by AiDeviceInfo. */
     private fun aiLocale(): String =
         when (LocaleHelper.getLanguage(requireContext())) {
             AppLanguage.CHINESE -> "zh"
@@ -424,48 +606,56 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         }
 
     // -------------------------------------------------------------------------
-    // Phone debug recording / PCM play / share
+    // Debug Record button — phone mic OR watch-via-SCO
     // -------------------------------------------------------------------------
 
-    /** Toggle phone mic capture (debug path, not the watch mic). */
-    private fun toggleRecord() {
+    private fun toggleDebugRecord() {
         if (recording) {
-            stopPhoneRecordInternal()
+            stopDebugRecordInternal()
         } else {
-            ensureMicThenRecord()
+            val mode = selectedRecordMode()
+            if (mode == RecordMode.WATCH_DEVICE ||
+                (mode == RecordMode.AUTO && resolveRecordFromDevice(resolvePlatform()))
+            ) {
+                Toast.makeText(requireContext(), R.string.ai_wf_record_watch_hint, Toast.LENGTH_LONG)
+                    .show()
+                appendLine(getString(R.string.ai_wf_record_watch_hint))
+            }
+            ensureMicThenDebugRecord()
         }
     }
 
-    private fun ensureMicThenRecord() {
-        val granted =
-            ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.RECORD_AUDIO,
-            ) == PackageManager.PERMISSION_GRANTED
-        if (granted) startPhoneRecord()
-        else requestRecordAudio.launch(Manifest.permission.RECORD_AUDIO)
+    private fun ensureMicThenDebugRecord() {
+        ensureMicThen(PendingMicAction.DEBUG_RECORD)
     }
 
     /**
-     * Start [AFlashVoiceRecorderService] from the **app** (phone mic).
+     * Manual App-side capture for demos.
      *
-     * Constructor arg `speakOnWatch = false` → do not route playback to the watch speaker.
-     * [AFlashVoiceRecorderService.startRecording] `(autoStop, language)`:
-     * - autoStop=false: user stops via button.
-     * - language=-1: use default / device locale.
-     *
-     * PCM is written under AiCenter workspace as `record.pcm` (see [recordPcmPath]).
+     * Temporarily forces `recordFromDevice=false` so [AFlashVoiceRecorderService] takes the App
+     * branch (same idea as HaWoFit `enterAiWatchfaceAppRecordMode`), then starts recording with
+     * `speakOnWatch` = [speakOnWatchForDebugRecord]:
+     * - SCO path: opens BT SCO, records watch HFP mic through the phone
+     * - Phone path: built-in mic only
      */
-    private fun startPhoneRecord() {
+    private fun startDebugRecord() {
         if (!aiStarted) {
             Toast.makeText(requireContext(), R.string.ai_wf_need_start, Toast.LENGTH_SHORT).show()
             return
         }
+        val speakOnWatch = speakOnWatchForDebugRecord()
+        if (speakOnWatch) {
+            appendLine(getString(R.string.ai_wf_sco_need_bt))
+        }
+
+        // Force App capture for this debug session (restore on Apply / next applyRecordingPath).
+        AiCenter.getInstance().setRecordFromDevice(false)
+        startRecordServiceSafe()
+
         voiceRecorder =
             AFlashVoiceRecorderService(
-                false,
+                speakOnWatch,
                 object : AFlashVoiceRecorderService.Callback {
-                    /** Partial / final ASR text from AFlash (debug visibility). */
                     override fun onTextUpdated(result: String?) {
                         appendLine("ASR: $result")
                     }
@@ -476,6 +666,7 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
                             if (_binding == null) return@post
                             recording = false
                             binding.btnRecord.setText(R.string.ai_wf_record)
+                            applyRecordingPath(logResult = false)
                         }
                     }
                 },
@@ -483,24 +674,27 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         voiceRecorder?.startRecording(false, -1)
         recording = true
         binding.btnRecord.setText(R.string.ai_wf_stop_record)
-        appendLine(getString(R.string.ai_wf_recording))
+        appendLine(
+            if (speakOnWatch) {
+                getString(R.string.ai_wf_recording_sco)
+            } else {
+                getString(R.string.ai_wf_recording_phone)
+            },
+        )
     }
 
-    private fun stopPhoneRecordInternal() {
+    private fun stopDebugRecordInternal() {
         voiceRecorder?.stopRecording()
         voiceRecorder = null
         if (recording) {
             recording = false
             _binding?.btnRecord?.setText(R.string.ai_wf_record)
             appendLine(getString(R.string.ai_wf_record_stopped))
+            // Restore Auto/Watch/Phone path selected in the spinner.
+            if (aiStarted) applyRecordingPath(logResult = false)
         }
     }
 
-    /**
-     * Play last `record.pcm`.
-     * Format must match AI recorder output: **16 kHz, mono, PCM 16-bit**.
-     * Wrong format sounds like noise or silence.
-     */
     private fun playPcm() {
         val path = recordPcmPath() ?: return
         val file = File(path)
@@ -518,10 +712,6 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         appendLine(getString(R.string.ai_wf_playing))
     }
 
-    /**
-     * Share `record.pcm` via system chooser using [FileProvider].
-     * Paths must be covered by `res/xml/file_paths.xml` (files / cache / external-files).
-     */
     private fun sharePcm() {
         val path = recordPcmPath() ?: return
         val file = File(path)
@@ -548,7 +738,6 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         startActivity(Intent.createChooser(intent, getString(R.string.ai_wf_share_title)))
     }
 
-    /** Absolute path to AiCenter workspace `record.pcm`, or null if AI not started. */
     private fun recordPcmPath(): String? {
         if (!aiStarted) {
             Toast.makeText(requireContext(), R.string.ai_wf_need_start, Toast.LENGTH_SHORT).show()
@@ -558,13 +747,9 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
     }
 
     // -------------------------------------------------------------------------
-    // AiEvent — watch / cloud pipeline callbacks
+    // AiEvent
     // -------------------------------------------------------------------------
 
-    /**
-     * Preview / thumbnail bitmap ready (note: API name is historically misspelled "Perview").
-     * [code] == 0 success; otherwise [msg] explains failure (download, crop, etc.).
-     */
     override fun devicePerviewImageCallback(bitmap: Bitmap?, code: Int, msg: String?) {
         mainHandler.post {
             if (_binding == null) return@post
@@ -579,10 +764,6 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         }
     }
 
-    /**
-     * Full AI watchface **background** image ready (already scaled / rounded per AiDeviceInfo).
-     * Shown in the large preview ImageView; later packaged for OTA when the watch requests install.
-     */
     override fun deviceAiImageCallback(image: Bitmap?, code: Int, message: String?) {
         mainHandler.post {
             if (_binding == null) return@post
@@ -600,22 +781,14 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         }
     }
 
-    /**
-     * Watchface install (QJS / Sifli OTA) progress.
-     * [progress] is typically 0f..1f from AiCenter / watchface sync.
-     */
     override fun deviceOtaWatchfaceProgressUpdated(progress: Float) {
         mainHandler.post {
             if (_binding == null) return@post
-            val pct = (progress * 100).toInt()
-            binding.tvStatus.text = getString(R.string.ai_wf_ota_progress, pct)
+            binding.tvStatus.text =
+                getString(R.string.ai_wf_ota_progress, (progress * 100).toInt())
         }
     }
 
-    /**
-     * Install finished.
-     * [code] == 0 success; non-zero → packaging, transfer, or device reject ([errorMsg]).
-     */
     override fun deviceOtaWatchfaceDone(
         watchface: SifliCustomWatchface?,
         code: Int,
@@ -633,42 +806,33 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         }
     }
 
-    /** Watch UI entered AI Watchface mode. */
     override fun deviceEnteredAiWatchface() {
         appendLine("deviceEnteredAiWatchface")
     }
 
-    /** Watch UI left AI Watchface mode. */
     override fun deviceExitedAiWatchface() {
         appendLine("deviceExitedAiWatchface")
     }
 
     /**
      * Watch started recording.
-     * [type]: `0` = for watchface generation, `1` = for AI Q&A (see AiEvent docs).
+     * [type]: `0` = AI watchface, `1` = AI Q&A.
+     * Actual PCM source is whatever [AiCenter.isRecordFromDevice] / SCO decided at start.
      */
     override fun deviceStartRecording(type: Int) {
-        appendLine("deviceStartRecording type=$type")
+        val fromDevice = AiCenter.getInstance().isRecordFromDevice
+        appendLine(
+            "deviceStartRecording type=$type recordFromDevice=$fromDevice " +
+                "(watch mic vs phone/SCO — see Record mode)",
+        )
     }
 
-    /** Watch stopped recording ([type] same as [deviceStartRecording]). */
     override fun deviceStopRecording(type: Int) {
-        appendLine("deviceStopRecording type=$type")
+        appendLine(
+            "deviceStopRecording type=$type recordFromDevice=${AiCenter.getInstance().isRecordFromDevice}",
+        )
     }
 
-    // -------------------------------------------------------------------------
-    // IErrorMessageProvider
-    // -------------------------------------------------------------------------
-
-    /**
-     * Map numeric AI / AFlash / ASR error codes to display strings.
-     *
-     * Prefer strings from `com.huawo.ai.R.string.error_*` when present; fall back to demo strings
-     * for a few common app-side codes (mic, daily limit, empty ASR).
-     *
-     * Returning a non-empty message lets AiCenter show something useful instead of a bare code.
-     * See AI SDK ReadMe §6 for the common code table (80041 mic, 10516 daily watchface limit, …).
-     */
     override fun messageForCode(code: Int): String {
         val ctx = context ?: return "$code"
         val mapped =
@@ -709,18 +873,12 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         return "$code: ${mapped ?: "Failed"}"
     }
 
-    // -------------------------------------------------------------------------
-    // On-screen log
-    // -------------------------------------------------------------------------
-
     private fun appendLog(level: String, tag: String?, msg: String) {
         mainHandler.post {
-            val time = dateFormat.format(Date())
-            appendLine("$time $level 【$tag】 $msg")
+            appendLine("${dateFormat.format(Date())} $level 【$tag】 $msg")
         }
     }
 
-    /** Append one line and auto-scroll; no-op if the view was destroyed. */
     private fun appendLine(line: String) {
         val b = _binding ?: return
         logBuilder.append(line).append('\n')
@@ -731,12 +889,6 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         b.logScroll.post { b.logScroll.fullScroll(View.FOCUS_DOWN) }
     }
 
-    /**
-     * One watch geometry preset.
-     *
-     * @property width / [height] / [corner] Background (full dial) size and corner radius in px.
-     * @property thumbW / [thumbH] / [thumbCorner] Thumbnail (list icon) size and corner radius in px.
-     */
     private data class SizePreset(
         val label: String,
         val width: Int,
@@ -746,6 +898,30 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         val thumbH: Int,
         val thumbCorner: Int,
     )
+
+    /**
+     * UI record-mode choices. Maps to [AiCenter.setRecordFromDevice] + debug `speakOnWatch`.
+     */
+    private enum class RecordMode(val labelRes: Int) {
+        /** Same rule as HaWoFit: JieLi or firmware flag → watch; else phone/SCO App path. */
+        AUTO(R.string.ai_wf_record_mode_auto),
+
+        /** Force watch microphone / BLE audio pull. */
+        WATCH_DEVICE(R.string.ai_wf_record_mode_watch),
+
+        /** Force App AudioRecord on the phone handset mic (no SCO). */
+        PHONE_MIC(R.string.ai_wf_record_mode_phone),
+
+        /** Force App path with Bluetooth SCO (watch HFP mic → phone). */
+        WATCH_SCO(R.string.ai_wf_record_mode_sco),
+    }
+
+    private enum class PlatformChoice(val labelRes: Int) {
+        AUTO(R.string.ai_wf_platform_auto),
+        SIFLI(R.string.ai_wf_platform_sifli),
+        JIELI(R.string.ai_wf_platform_jieli),
+        REALTEK(R.string.ai_wf_platform_realtek),
+    }
 
     companion object {
         /** Demo credentials (same as HaWoFit). Replace with vendor-issued key/secret for production. */

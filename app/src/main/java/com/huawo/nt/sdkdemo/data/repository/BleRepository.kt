@@ -299,7 +299,33 @@ class BleRepository(private val application: Application) {
 
     suspend fun createBond() = awaitCreateBond("createBond failed") { BluetoothSDK.createBond(it) }
 
+    /**
+     * Remove classic BT bond for the currently connected device.
+     * Prefer [removeBondByMac] after BLE disconnect (same as HaWoFit removePair).
+     */
     suspend fun removeBond() = awaitRemoveBond("removeBond failed") { BluetoothSDK.removeBond(it) }
+
+    /** Remove classic BT bond by MAC — works after BLE is already disconnected. */
+    suspend fun removeBondByMac(mac: String) =
+        awaitRemoveBond("removeBond($mac) failed") { BluetoothSDK.removeBond(mac, it) }
+
+    fun isBonded(mac: String): Boolean = BluetoothSDK.isBonded(mac)
+
+    /**
+     * Ask the watch to turn classic Bluetooth (BT) radio on/off.
+     * HaWoFit: `setBTSwitch(false)` before removeBond on unbind; `setBTSwitch(true)` before createBond on bind.
+     */
+    suspend fun setBTSwitch(on: Boolean) =
+        awaitVoid("setBTSwitch($on) failed") { BluetoothSDK.setBTSwitch(on, it) }
+
+    /**
+     * Turn watch BT on with optional auto-connect (used when already bonded).
+     * HaWoFit createPair: `turnOnBTSwitchWithOption(true)` if already bonded.
+     */
+    suspend fun turnOnBTSwitchWithOption(autoConnect: Boolean) =
+        awaitVoid("turnOnBTSwitchWithOption failed") {
+            BluetoothSDK.turnOnBTSwitchWithOption(autoConnect, it)
+        }
 
     suspend fun setDeviceTime(timeMs: Long = System.currentTimeMillis(), use24Hour: Boolean = true) {
         awaitVoid("setDeviceTime failed") {

@@ -50,6 +50,12 @@ class BindFlowViewModel(
             ),
             FlowStep("BluetoothSDK.endBind()", str(R.string.bind_step_end), str(R.string.bind_note_62)),
             FlowStep("BluetoothSDK.isBonded()", str(R.string.bind_step_is_bonded), str(R.string.bind_note_61)),
+            // HaWoFit createPair: turn on watch classic BT before createBond / when already bonded.
+            FlowStep(
+                "BluetoothSDK.setBTSwitch / turnOnBTSwitchWithOption",
+                str(R.string.bind_step_bt_on),
+                str(R.string.bind_note_bt_on),
+            ),
             FlowStep(
                 "BluetoothSDK.createBond()",
                 str(R.string.bind_step_create_bond),
@@ -82,12 +88,21 @@ class BindFlowViewModel(
                 markRunning(7)
                 val bonded = repository.isBonded()
                 markDone(7, if (bonded) str(R.string.detail_paired) else str(R.string.detail_not_paired))
+
+                // Turn on watch classic BT (required for createBond / HFP / SPP / AI SCO).
+                // Already bonded → turnOnBTSwitchWithOption(autoConnect=true);
+                // not bonded → setBTSwitch(true), wait briefly, then createBond.
                 if (bonded) {
-                    markSkipped(8, str(R.string.detail_skip_create_bond))
+                    runSoft(8) { repository.turnOnBTSwitchWithOption(autoConnect = true) }
+                    markSkipped(9, str(R.string.detail_skip_create_bond))
                 } else {
-                    runSoft(8) { repository.createBond() }
+                    runSoft(8) {
+                        repository.setBTSwitch(true)
+                        kotlinx.coroutines.delay(2_000)
+                    }
+                    runSoft(9) { repository.createBond() }
                 }
-                if (!runHard(9) { repository.setBind(true) }) return@launch
+                if (!runHard(10) { repository.setBind(true) }) return@launch
                 _uiState.update { it.copy(finished = true) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(failed = true, error = e.message) }

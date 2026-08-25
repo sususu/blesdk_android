@@ -9,7 +9,8 @@
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
         android:background="?attr/colorPrimary"
         app:navigationIcon="?attr/homeAsUpIndicator"
         app:navigationIconTint="@color/white"
@@ -48,7 +49,7 @@
             android:layout_weight="1"
             android:textAppearance="?attr/textAppearanceSubtitle1"
             android:textColor="?android:attr/textColorPrimary"
-            tools:text="点击下方开始扫描" />
+            tools:text="ç‚¹å‡»ä¸‹æ–¹å¼€å§‹æ‰«æ��" />
     </LinearLayout>
 
     <com.google.android.material.button.MaterialButton

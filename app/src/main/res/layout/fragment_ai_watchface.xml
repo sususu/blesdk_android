@@ -48,6 +48,53 @@
                     android:singleLine="true" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!--
+              Recording path + platform (aligned with HaWoFit MainActivity / WatchfaceEditV5):
+              - Watch device mic vs Phone/App path (Bluetooth SCO when speakOnWatch).
+              - Platform drives AiCenter install/record handlers (SIFLI / JIELI / …).
+            -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/ai_wf_section_record_path"
+                android:textAppearance="?attr/textAppearanceSubtitle2" />
+
+            <TextView
+                android:id="@+id/tv_firmware_record_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textColor="?android:attr/textColorSecondary"
+                tools:text="Firmware recordFromDevice=false, protocol=…" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/ai_wf_label_record_mode"
+                android:textAppearance="?attr/textAppearanceCaption" />
+
+            <Spinner
+                android:id="@+id/spinner_record_mode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/ai_wf_label_platform"
+                android:textAppearance="?attr/textAppearanceCaption" />
+
+            <Spinner
+                android:id="@+id/spinner_platform"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

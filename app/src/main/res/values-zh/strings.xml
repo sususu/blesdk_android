@@ -108,23 +108,29 @@
     <string name="bind_step_device_info">获取设备信息</string>
     <string name="bind_step_end">结束绑定流程</string>
     <string name="bind_step_is_bonded">查询经典蓝牙是否已配对</string>
+    <string name="bind_step_bt_on">打开手表经典蓝牙</string>
     <string name="bind_step_create_bond">经典蓝牙配对</string>
     <string name="bind_step_set_bind">给 SDK 设置已绑定标记</string>
     <string name="bind_note_62">Android §6.2</string>
     <string name="bind_note_env">绑定后环境同步</string>
     <string name="bind_note_save_local">绑定后拉取，结束后写入 App 本地</string>
     <string name="bind_note_61">Android §6.1</string>
+    <string name="bind_note_bt_on">对齐 HaWoFit createPair · 配对前 setBTSwitch / turnOnBTSwitchWithOption</string>
     <string name="bind_note_61_skip">Android §6.1 · 已配对则跳过</string>
     <string name="bind_note_set_bind">Android §6.2 · 供 SDK 断连重连逻辑使用</string>
 
-    <string name="unbind_step_remove_bond">取消经典蓝牙配对</string>
+    <string name="unbind_step_bt_off">关闭手表经典蓝牙</string>
+    <string name="unbind_step_remove_bond">移除经典蓝牙配对</string>
     <string name="unbind_step_disconnect">断开 BLE 连接</string>
     <string name="unbind_step_set_bind">给 SDK 清除已绑定标记</string>
     <string name="unbind_step_clear_local">清除 App 保存的绑定数据</string>
-    <string name="unbind_note_remove_bond">Android §6.1 · 不依赖 BLE 连接</string>
+    <string name="unbind_note_bt_off">对齐 HaWoFit removePair · 先 setBTSwitch(false)</string>
+    <string name="unbind_note_remove_bond">Android §6.1 · 断 BLE 后按 MAC 调用 removeBond</string>
     <string name="unbind_note_disconnect">Android 解绑 §22</string>
     <string name="unbind_note_set_bind">Android §6.2 / §22</string>
     <string name="unbind_note_local">App 本地持久化</string>
+    <string name="unbind_detail_no_mac">无 MAC，跳过 removeBond</string>
+    <string name="unbind_detail_not_bonded">未配对（%1$s），跳过 removeBond</string>
 
     <string name="feature_section">设备功能</string>
     <string name="feature_goals">目标设置</string>
@@ -143,9 +149,9 @@
     <string name="ai_guide_card_deps_title">1. 依赖</string>
     <string name="ai_guide_card_deps_body">放入 app/libs：ai-*.aar、BluetoothSDK-*.aar、qjs-watchface-*.aar、QW_release_*.aar、BmpConvert_*.aar、jl_pack_resource_*.aar。\nGradle：implementation fileTree(dir: \'libs\', include: [\'*.aar\'])\n另需 okhttp / gson / lifecycle-process 及配套 Sifli AAR。</string>
     <string name="ai_guide_card_perm_title">2. 权限</string>
-    <string name="ai_guide_card_perm_body">本 Demo 固定使用手表麦克风，无需 RECORD_AUDIO，也无需前台录音服务。\n需要 INTERNET 与 BLE 权限（Android 12+：BLUETOOTH_SCAN / CONNECT）。</string>
+    <string name="ai_guide_card_perm_body">手表麦路径：无需手机 RECORD_AUDIO。\n手机麦 / 手表 SCO：需申请 RECORD_AUDIO（API 33+ 通知权限；API 34+ FOREGROUND_SERVICE_MICROPHONE），再调用 AiCenter.startRecordService()。\n另需 INTERNET 与 BLE（Android 12+：BLUETOOTH_SCAN / CONNECT）。</string>
     <string name="ai_guide_card_steps_title">3. 集成步骤</string>
-    <string name="ai_guide_card_steps_body">1) Application：AiCenter.setApplication(app)\n2) 用 BluetoothSDK 连接手表\n3) init(ctx, false) → setAiEvent → setCallback → setKeyAndSecret → setRecordFromDevice(true) → startWorking\n4) setDeviceInfo(AiDeviceInfo) — 必做（缺失报 80051）\n5) 退出：stopWorking() / destroy()\n前后台：setAppInForeground(true/false)\n使用设备麦时不要调用 startRecordService()。</string>
+    <string name="ai_guide_card_steps_body">1) Application：AiCenter.setApplication(app)\n2) 用 BluetoothSDK 连接手表\n3) init(ctx, false) → setAiEvent → setCallback → setRecordFromDevice(…) → startWorking\n4) setDeviceInfo(AiDeviceInfo) — 必做（缺失报 80051）\n5) 退出：stopWorking() / destroy()\n前后台：setAppInForeground(true/false)\nsetRecordFromDevice：true = 手表麦（不要调用 startRecordService()）；false = 手机麦（需 startRecordService()）。</string>
     <string name="ai_guide_card_device_title">4. AiDeviceInfo</string>
     <string name="ai_guide_card_device_body">设置 mac、type、id（AFlash DeviceId，不是 MAC）、宽高圆角、缩略图尺寸、locale。\n分辨率须与真机一致。重连或改语言/尺寸后请再次调用。</string>
     <string name="ai_guide_card_events_title">5. AiEvent（主要）</string>
@@ -205,6 +211,24 @@
     <string name="watchface_hint_ai">AI 表盘：设置设备信息后，在手表侧触发 AI 生成。</string>
     <string name="ai_wf_section_device">设备</string>
     <string name="ai_wf_device_id">设备 ID</string>
+    <string name="ai_wf_section_record_path">录音通道（手表直录 / 手机 SCO）</string>
+    <string name="ai_wf_label_record_mode">录音模式</string>
+    <string name="ai_wf_label_platform">平台</string>
+    <string name="ai_wf_record_mode_auto">自动（跟固件，与 HaWoFit 一致）</string>
+    <string name="ai_wf_record_mode_watch">手表麦克风（recordFromDevice=true）</string>
+    <string name="ai_wf_record_mode_phone">手机麦克风（无 SCO）</string>
+    <string name="ai_wf_record_mode_sco">手表经手机 SCO（HFP 麦 → 手机）</string>
+    <string name="ai_wf_platform_auto">自动（protocol≥100 → JIELI，否则 SIFLI）</string>
+    <string name="ai_wf_platform_sifli">SIFLI</string>
+    <string name="ai_wf_platform_jieli">JIELI</string>
+    <string name="ai_wf_platform_realtek">REALTEK</string>
+    <string name="ai_wf_fw_record_hint">固件：recordFromDevice=%1$s，protocol=%2$d → 推断平台=%3$s</string>
+    <string name="ai_wf_fw_record_unknown">固件：尚未读到 DeviceInfo（请先连接）</string>
+    <string name="ai_wf_applied_path">已应用：recordFromDevice=%1$s，platform=%2$s，speakOnWatch(调试)=%3$s</string>
+    <string name="ai_wf_record_watch_hint">手表直录模式：请在手表上说话。手机「录音」仅用于 App/SCO 调试。</string>
+    <string name="ai_wf_sco_need_bt">SCO 模式需要手表已建立经典蓝牙 / HFP 连接。</string>
+    <string name="ai_wf_recording_sco">正在通过蓝牙 SCO 录音（手表 HFP 麦）…</string>
+    <string name="ai_wf_recording_phone">正在通过手机麦克风录音…</string>
     <string name="ai_wf_label_bg_size">背景尺寸</string>
     <string name="ai_wf_label_thumb_size">缩略图尺寸</string>
     <string name="ai_wf_hint_w">宽</string>
@@ -238,6 +262,9 @@
     <string name="ai_wf_ota_progress">正在安装 AI 表盘… %1$d%%</string>
     <string name="ai_wf_ota_ok">AI 表盘安装完成</string>
     <string name="ai_wf_mic_denied">未授予麦克风权限</string>
+    <string name="ai_wf_mic_granted">已授予麦克风权限</string>
+    <string name="ai_wf_requesting_mic">正在申请麦克风 / 前台麦克风权限…</string>
+    <string name="ai_wf_record_service_started">已调用 AiCenter.startRecordService()</string>
     <string name="ai_wf_err_no_mic">无麦克风权限</string>
     <string name="ai_wf_err_daily_limit">当日 AI 次数已用尽</string>
     <string name="ai_wf_err_asr_empty">语音识别为空 / 模型错误</string>

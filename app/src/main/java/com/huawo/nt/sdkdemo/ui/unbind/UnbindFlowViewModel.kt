@@ -21,6 +21,17 @@ data class UnbindUiState(
     val error: String? = null,
 )
 
+/**
+ * Unbind flow aligned with HaWoFit [DeviceComplexWorkflow.removePair]:
+ *
+ * 1. [BluetoothSDK.setBTSwitch]`(false)` — ask watch to turn **classic BT** off
+ * 2. [BluetoothSDK.disconnect] — drop BLE
+ * 3. [BluetoothSDK.removeBond]`(mac)` — remove classic BT pairing on the phone
+ *    (must use MAC after disconnect; skip if not bonded)
+ * 4. [BluetoothSDK.setBind]`(false)` + clear local bound record
+ *
+ * Classic BT unpair is required so the next bind/SCO/SPP cycle does not reuse a stale bond.
+ */
 class UnbindFlowViewModel(
     application: Application,
     private val repository: BleRepository,
@@ -37,14 +48,19 @@ class UnbindFlowViewModel(
     private fun buildSteps(): List<FlowStep> =
         listOf(
             FlowStep(
-                "BluetoothSDK.removeBond()",
-                str(R.string.unbind_step_remove_bond),
-                str(R.string.unbind_note_remove_bond),
+                "BluetoothSDK.setBTSwitch(false)",
+                str(R.string.unbind_step_bt_off),
+                str(R.string.unbind_note_bt_off),
             ),
             FlowStep(
                 "BluetoothSDK.disconnect()",
                 str(R.string.unbind_step_disconnect),
                 str(R.string.unbind_note_disconnect),
+            ),
+            FlowStep(
+                "BluetoothSDK.removeBond(mac)",
+                str(R.string.unbind_step_remove_bond),
+                str(R.string.unbind_note_remove_bond),
             ),
             FlowStep(
                 "BluetoothSDK.setBind(false)",
@@ -61,10 +77,30 @@ class UnbindFlowViewModel(
     fun start() {
         viewModelScope.launch {
             try {
-                runSoft(0) { repository.removeBond() }
+                // Capture MAC before disconnect so removeBond still works afterward.
+                val mac =
+                    repository.connectedDeviceMac()
+                        ?: repository.loadBoundDevice()?.macAddress
+                        ?: ""
+
+                // 1) Turn off watch classic BT radio (HaWoFit removePair first step).
+                runSoft(0) { repository.setBTSwitch(false) }
+
+                // 2) Disconnect BLE GATT.
                 runSoft(1) { repository.disconnect() }
-                if (!runHard(2) { repository.setBind(false) }) return@launch
-                if (!runHard(3) { repository.clearBoundDevice() }) return@launch
+
+                // 3) Remove classic BT pairing from the phone system bond list.
+                if (mac.isBlank()) {
+                    markSkipped(2, str(R.string.unbind_detail_no_mac))
+                } else if (!repository.isBonded(mac)) {
+                    markSkipped(2, str(R.string.unbind_detail_not_bonded, mac))
+                } else {
+                    runSoft(2) { repository.removeBondByMac(mac) }
+                }
+
+                // 4–5) Clear SDK bind flag + local persistence.
+                if (!runHard(3) { repository.setBind(false) }) return@launch
+                if (!runHard(4) { repository.clearBoundDevice() }) return@launch
                 _uiState.update { it.copy(finished = true) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(failed = true, error = e.message) }

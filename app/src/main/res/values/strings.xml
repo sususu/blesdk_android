@@ -108,23 +108,29 @@
     <string name="bind_step_device_info">Get device info</string>
     <string name="bind_step_end">End bind flow</string>
     <string name="bind_step_is_bonded">Check classic BT pairing</string>
+    <string name="bind_step_bt_on">Turn on watch classic BT</string>
     <string name="bind_step_create_bond">Create classic BT bond</string>
     <string name="bind_step_set_bind">Set SDK bind flag</string>
     <string name="bind_note_62">Android §6.2</string>
     <string name="bind_note_env">Post-bind environment sync</string>
     <string name="bind_note_save_local">Fetch after bind, then save locally</string>
     <string name="bind_note_61">Android §6.1</string>
+    <string name="bind_note_bt_on">HaWoFit createPair · setBTSwitch / turnOnBTSwitchWithOption before bond</string>
     <string name="bind_note_61_skip">Android §6.1 · skip if already paired</string>
     <string name="bind_note_set_bind">Android §6.2 · used by SDK reconnect logic</string>
 
-    <string name="unbind_step_remove_bond">Remove classic BT bond</string>
+    <string name="unbind_step_bt_off">Turn off watch classic BT</string>
+    <string name="unbind_step_remove_bond">Remove classic BT pairing</string>
     <string name="unbind_step_disconnect">Disconnect BLE</string>
     <string name="unbind_step_set_bind">Clear SDK bind flag</string>
     <string name="unbind_step_clear_local">Clear app binding data</string>
-    <string name="unbind_note_remove_bond">Android §6.1 · no BLE required</string>
+    <string name="unbind_note_bt_off">HaWoFit removePair · setBTSwitch(false) before unpair</string>
+    <string name="unbind_note_remove_bond">Android §6.1 · removeBond(mac) after BLE disconnect</string>
     <string name="unbind_note_disconnect">Android unbind §22</string>
     <string name="unbind_note_set_bind">Android §6.2 / §22</string>
     <string name="unbind_note_local">App local persistence</string>
+    <string name="unbind_detail_no_mac">No MAC — skip removeBond</string>
+    <string name="unbind_detail_not_bonded">Not bonded (%1$s) — skip removeBond</string>
 
     <string name="feature_section">Device features</string>
     <string name="feature_goals">Goals</string>
@@ -143,9 +149,9 @@
     <string name="ai_guide_card_deps_title">1. Dependencies</string>
     <string name="ai_guide_card_deps_body">Put in app/libs: ai-*.aar, BluetoothSDK-*.aar, qjs-watchface-*.aar, QW_release_*.aar, BmpConvert_*.aar, jl_pack_resource_*.aar.\nGradle: implementation fileTree(dir: \'libs\', include: [\'*.aar\'])\nAlso need okhttp / gson / lifecycle-process and matching Sifli AARs.</string>
     <string name="ai_guide_card_perm_title">2. Permissions</string>
-    <string name="ai_guide_card_perm_body">This demo uses the watch mic only — no RECORD_AUDIO and no foreground mic service.\nNeed INTERNET and BLE permissions (Android 12+: BLUETOOTH_SCAN / CONNECT).</string>
+    <string name="ai_guide_card_perm_body">Watch-mic path: no phone RECORD_AUDIO.\nPhone mic / Watch-via-SCO: request RECORD_AUDIO (API 33+ POST_NOTIFICATIONS; API 34+ FOREGROUND_SERVICE_MICROPHONE), then AiCenter.startRecordService().\nAlso need INTERNET and BLE (Android 12+: BLUETOOTH_SCAN / CONNECT).</string>
     <string name="ai_guide_card_steps_title">3. Integration steps</string>
-    <string name="ai_guide_card_steps_body">1) Application: AiCenter.setApplication(app)\n2) Connect watch via BluetoothSDK\n3) init(ctx, false) → setAiEvent → setCallback → setKeyAndSecret → setRecordFromDevice(true) → startWorking\n4) setDeviceInfo(AiDeviceInfo) — required (missing → 80051)\n5) Exit: stopWorking() / destroy()\nSync foreground: setAppInForeground(true/false)\nDo not call startRecordService() when using the device mic.</string>
+    <string name="ai_guide_card_steps_body">1) Application: AiCenter.setApplication(app)\n2) Connect watch via BluetoothSDK\n3) init(ctx, false) → setAiEvent → setCallback → setRecordFromDevice(…) → startWorking\n4) setDeviceInfo(AiDeviceInfo) — required (missing → 80051)\n5) Exit: stopWorking() / destroy()\nSync foreground: setAppInForeground(true/false)\nsetRecordFromDevice: true = watch mic (do not call startRecordService()); false = app mic (+ startRecordService()).</string>
     <string name="ai_guide_card_device_title">4. AiDeviceInfo</string>
     <string name="ai_guide_card_device_body">Set mac, type, id (AFlash DeviceId, not MAC), width/height/corner, thumbnail size, locale.\nPanel size must match the real watch. Call again after reconnect or locale/size change.</string>
     <string name="ai_guide_card_events_title">5. AiEvent (main)</string>
@@ -205,6 +211,24 @@
     <string name="watchface_hint_ai">AI watchface — set device info, then generate from the watch.</string>
     <string name="ai_wf_section_device">Device</string>
     <string name="ai_wf_device_id">Device ID</string>
+    <string name="ai_wf_section_record_path">Recording path (watch vs phone SCO)</string>
+    <string name="ai_wf_label_record_mode">Record mode</string>
+    <string name="ai_wf_label_platform">Platform</string>
+    <string name="ai_wf_record_mode_auto">Auto (from firmware, same as HaWoFit)</string>
+    <string name="ai_wf_record_mode_watch">Watch mic (recordFromDevice=true)</string>
+    <string name="ai_wf_record_mode_phone">Phone mic (App AudioRecord, no SCO)</string>
+    <string name="ai_wf_record_mode_sco">Watch via phone SCO (HFP mic → phone)</string>
+    <string name="ai_wf_platform_auto">Auto (protocol≥100 → JIELI, else SIFLI)</string>
+    <string name="ai_wf_platform_sifli">SIFLI</string>
+    <string name="ai_wf_platform_jieli">JIELI</string>
+    <string name="ai_wf_platform_realtek">REALTEK</string>
+    <string name="ai_wf_fw_record_hint">Firmware: recordFromDevice=%1$s, protocol=%2$d → inferred platform=%3$s</string>
+    <string name="ai_wf_fw_record_unknown">Firmware: DeviceInfo not loaded yet (connect &amp; wait)</string>
+    <string name="ai_wf_applied_path">Applied: recordFromDevice=%1$s, platform=%2$s, speakOnWatch(debug)=%3$s</string>
+    <string name="ai_wf_record_watch_hint">Watch-mic mode: speak on the watch. Phone Record is for App/SCO debug only.</string>
+    <string name="ai_wf_sco_need_bt">SCO mode needs classic BT / HFP connected to the watch.</string>
+    <string name="ai_wf_recording_sco">Recording via Bluetooth SCO (watch HFP mic)…</string>
+    <string name="ai_wf_recording_phone">Recording via phone microphone…</string>
     <string name="ai_wf_label_bg_size">Background size</string>
     <string name="ai_wf_label_thumb_size">Thumbnail size</string>
     <string name="ai_wf_hint_w">W</string>
@@ -238,6 +262,9 @@
     <string name="ai_wf_ota_progress">Installing AI watchface… %1$d%%</string>
     <string name="ai_wf_ota_ok">AI watchface installed</string>
     <string name="ai_wf_mic_denied">Microphone permission denied</string>
+    <string name="ai_wf_mic_granted">Microphone permission granted</string>
+    <string name="ai_wf_requesting_mic">Requesting microphone / foreground-mic permissions…</string>
+    <string name="ai_wf_record_service_started">AiCenter.startRecordService() called</string>
     <string name="ai_wf_err_no_mic">No microphone permission</string>
     <string name="ai_wf_err_daily_limit">Daily AI limit reached</string>
     <string name="ai_wf_err_asr_empty">Speech-to-text empty / model error</string>
