@@ -55,8 +55,8 @@ data class OtaUpgradeUiState(
 )
 
 /**
- * One-shot event for [OtaUpgradeFragment]: bind DFU LocalBroadcast then start
- * [com.sifli.siflidfu.SifliDFUService.startActionDFUNand].
+ * One-shot event for [OtaUpgradeFragment]: register DFU LocalBroadcast then call
+ * bound [com.sifli.siflidfu.ISifliDFUService.startActionDFUNand].
  */
 data class SifliDfuStartEvent(
     val mac: String,
@@ -82,7 +82,8 @@ data class SifliDfuStartEvent(
  *    - Preconditions: BLE connected, battery ≥ 30% (when queryable),
  *      [UpgradeStatus.Normal] (when queryable).
  *    - Download + prepare DFU images on IO ([SifliOtaHelper.prepareDfuImagePaths]).
- *    - Emit [sifliDfuStart]; Fragment starts Sifli DFU service and forwards progress.
+ *    - Emit [sifliDfuStart]; Fragment starts Sifli DFU (no BluetoothSDK disconnect)
+ *      and forwards progress (Home auto-reconnect is blocked for the duration).
  *
  * 4. **DFU callbacks** ([onDfuProgress] / [onDfuSuccess] / [onDfuFail])
  *    - Progress remapped into the 40..100 overall bar.
@@ -392,13 +393,25 @@ class OtaUpgradeViewModel(
                         }
                     appendLog(str(R.string.ota_log_dfu_images, paths.size))
                     paths.forEachIndexed { index, path ->
-                        appendLog("DFU[$index] ${path.imagePath}")
+                        appendLog("DFU[$index] id=${path.imageType} ${path.imagePath}")
+                    }
+
+                    // Prefer bound MAC (HaWoFit: DeviceBindManager.getBindDevice().deviceMac).
+                    val dfuMac =
+                        repository.loadBoundDevice()?.macAddress?.takeIf { it.isNotBlank() }
+                            ?: repository.connectedDeviceMac()?.takeIf { it.isNotBlank() }
+                            ?: cachedMac
+                    if (dfuMac.isBlank()) {
+                        throw IllegalStateException(str(R.string.ota_need_mac))
+                    }
+                    if (dfuMac != cachedMac) {
+                        appendLog("OTA DFU mac=$dfuMac (bound/connected; cached was $cachedMac)")
                     }
 
                     // Hand off to UI layer: register broadcast receiver, start DFU service.
                     setPhase(str(R.string.ota_phase_push), 40)
                     appendLog(str(R.string.ota_log_push_ready))
-                    _sifliDfuStart.emit(SifliDfuStartEvent(cachedMac, paths))
+                    _sifliDfuStart.emit(SifliDfuStartEvent(dfuMac, paths))
                 } catch (e: Exception) {
                     _uiState.update {
                         it.copy(

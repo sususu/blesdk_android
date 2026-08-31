@@ -1,11 +1,14 @@
 package com.huawo.nt.sdkdemo.ui.features
 
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.Handler
+import android.os.IBinder
 import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
@@ -19,23 +22,25 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.huawo.nt.sdkdemo.SdkDemoApp
 import com.huawo.nt.sdkdemo.databinding.FragmentOtaUpgradeBinding
 import com.huawo.nt.sdkdemo.ui.ViewModelFactory
 import com.huawo.nt.sdkdemo.ui.common.LogAdapter
+import com.sifli.siflidfu.ISifliDFUService
 import com.sifli.siflidfu.Protocol
 import com.sifli.siflidfu.SifliDFUService
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * OTA screen UI.
  *
- * Responsibilities:
- * - Bind [OtaUpgradeViewModel] state (device info, check result, progress, logs).
- * - On [OtaUpgradeViewModel.sifliDfuStart]: register Sifli DFU LocalBroadcast receiver,
- *   then start [SifliDFUService.startActionDFUNand] (1.5s delay matches production).
- * - Forward DFU progress / log / exit result back into the ViewModel.
- *
- * Back navigation is blocked while [OtaUpgradeUiState.busy] to avoid leaving mid-OTA.
+ * Aligns with HaWoFit [WatchUpgradeNewActivity]:
+ * - bind [SifliDFUService] early
+ * - before DFU: block Home auto-reconnect (production uses isQJSOTAServiceRunning / isDfuBusy)
+ * - do **not** disconnect BluetoothSDK before DFU
+ * - register LocalBroadcast, delay ~1.5s, then [ISifliDFUService.startActionDFUNand]
  */
 class OtaUpgradeFragment : Fragment() {
     private var _binding: FragmentOtaUpgradeBinding? = null
@@ -44,8 +49,27 @@ class OtaUpgradeFragment : Fragment() {
     private val viewModel: OtaUpgradeViewModel by viewModels { ViewModelFactory() }
     private val logAdapter = LogAdapter()
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val repository get() = SdkDemoApp.instance.bleRepository
 
     private var dfuReceiver: BroadcastReceiver? = null
+
+    private var sifliDfuService: ISifliDFUService? = null
+    private var dfuBound = false
+    /** True after [Context.bindService]; must [Context.unbindService] even if not yet connected. */
+    private var dfuBindRequested = false
+    private val dfuConnection =
+        object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+                val dfuBinder = binder as? SifliDFUService.SifliDFUBinder
+                sifliDfuService = dfuBinder?.dfuService
+                dfuBound = sifliDfuService != null
+            }
+
+            override fun onServiceDisconnected(name: ComponentName?) {
+                sifliDfuService = null
+                dfuBound = false
+            }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -71,6 +95,8 @@ class OtaUpgradeFragment : Fragment() {
         binding.btnCheck.setOnClickListener { viewModel.checkUpgrade() }
         binding.btnStart.setOnClickListener { viewModel.startUpgrade() }
         binding.btnClearLogs.setOnClickListener { viewModel.clearLogs() }
+
+        bindDfuService()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -113,16 +139,77 @@ class OtaUpgradeFragment : Fragment() {
         logAdapter.submit(state.logs)
     }
 
+    /** bindService early so DFU is ready when download/prepare finishes. */
+    private fun bindDfuService() {
+        if (dfuBindRequested) return
+        val intent = Intent(requireContext(), SifliDFUService::class.java)
+        dfuBindRequested = requireContext().bindService(intent, dfuConnection, Context.BIND_AUTO_CREATE)
+    }
+
+    private fun unbindDfuService() {
+        if (!dfuBindRequested) return
+        runCatching { requireContext().unbindService(dfuConnection) }
+        dfuBindRequested = false
+        sifliDfuService = null
+        dfuBound = false
+    }
+
     /**
-     * Register DFU broadcasts first, then start NAND DFU after a short delay so the
-     * receiver is ready (same timing as HaWoFit WatchUpgradeNewActivity).
+     * Same kickoff as HaWoFit WatchUpgradeNewActivity:
+     * wait for bind → block Home auto-reconnect → register broadcasts →
+     * delay 1.5s → [ISifliDFUService.startActionDFUNand].
+     *
+     * Do **not** call [BleRepository.disconnectWithoutClean] here — production keeps
+     * the BluetoothSDK link and lets SifliDFU open its own GATT alongside.
      */
     private fun startSifliDfu(event: SifliDfuStartEvent) {
-        registerDfuReceiver()
-        mainHandler.postDelayed({
-            if (!isAdded) return@postDelayed
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
-                SifliDFUService.startActionDFUNand(
+                bindDfuService()
+                val service =
+                    withTimeoutOrNull(8_000L) {
+                        while (sifliDfuService == null || !dfuBound) {
+                            delay(50)
+                        }
+                        sifliDfuService
+                    }
+                if (service == null) {
+                    viewModel.onDfuFail(-2, "SifliDFUService not bound")
+                    return@launch
+                }
+
+                // Block Home reconnect while DFU owns / races the radio (HaWoFit uses isDfuBusy).
+                repository.setSifliOtaInProgress(true)
+                viewModel.onDfuLog("OTA: pause auto-reconnect")
+
+                if (SifliDFUService.isDfuBusy()) {
+                    viewModel.onDfuLog("OTA: previous DFU busy, stop()")
+                    SifliDFUService.stop(requireContext())
+                    delay(300)
+                }
+
+                registerDfuReceiver()
+                delay(1500L)
+                if (!isAdded) return@launch
+
+                val dfu = sifliDfuService
+                if (dfu == null || !dfuBound) {
+                    finishOtaGate()
+                    unregisterDfuReceiver()
+                    viewModel.onDfuFail(-2, "SifliDFUService disconnected before start")
+                    return@launch
+                }
+                if (SifliDFUService.isDfuBusy()) {
+                    finishOtaGate()
+                    unregisterDfuReceiver()
+                    viewModel.onDfuFail(-2, "SifliDFUService is busy")
+                    return@launch
+                }
+
+                viewModel.onDfuLog(
+                    "OTA: startActionDFUNand mac=${event.mac} images=${event.imagePaths.size}",
+                )
+                dfu.startActionDFUNand(
                     requireContext(),
                     event.mac,
                     event.imagePaths,
@@ -130,10 +217,15 @@ class OtaUpgradeFragment : Fragment() {
                     0,
                 )
             } catch (e: Exception) {
+                finishOtaGate()
                 unregisterDfuReceiver()
                 viewModel.onDfuFail(-2, e.message.orEmpty().ifBlank { e.javaClass.simpleName })
             }
-        }, 1500L)
+        }
+    }
+
+    private fun finishOtaGate() {
+        repository.setSifliOtaInProgress(false)
     }
 
     /**
@@ -168,6 +260,8 @@ class OtaUpgradeFragment : Fragment() {
                                 intent.getIntExtra(SifliDFUService.EXTRA_DFU_STATE_RESULT, 0)
                             if (dfuState == Protocol.DFU_SERVICE_EXIT) {
                                 unregisterDfuReceiver()
+                                // Keep reconnect blocked a bit after exit (device may reboot).
+                                mainHandler.postDelayed({ finishOtaGate() }, 5_000L)
                                 if (result == 0) {
                                     // Delay success UI so the device can settle / reboot.
                                     mainHandler.postDelayed({
@@ -216,6 +310,12 @@ class OtaUpgradeFragment : Fragment() {
     override fun onDestroyView() {
         mainHandler.removeCallbacksAndMessages(null)
         unregisterDfuReceiver()
+        // Leaving the screen mid-OTA: stop DFU and allow reconnect again.
+        if (repository.sifliOtaInProgress || SifliDFUService.isDfuBusy()) {
+            runCatching { SifliDFUService.stop(requireContext()) }
+        }
+        finishOtaGate()
+        unbindDfuService()
         keepScreenOn(false)
         super.onDestroyView()
         _binding = null

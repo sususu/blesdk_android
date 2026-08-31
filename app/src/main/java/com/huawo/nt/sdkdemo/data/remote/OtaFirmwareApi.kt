@@ -44,7 +44,7 @@ object OtaFirmwareApi {
     private const val TAG = "OtaFirmwareApi"
 
     const val BASE_URL = "https://test.huawo-wear.com/"
-    const val FILE_BASE_URL = "https://static.huawo-wear.com/files/"
+    const val FILE_BASE_URL = "https://test.huawo-wear.com/files/"
     const val CUSTOMER_CODE = "Huawo"
 
     private const val CHECK_PATH = "api/v1/devices/upgrades"
@@ -214,6 +214,9 @@ object OtaFirmwareApi {
                     fromVersion = it.optString("fromVersion").takeIf { v -> v.isNotBlank() },
                     toVersion = it.optString("toVersion").takeIf { v -> v.isNotBlank() },
                 )
+            }?.takeIf {
+                // Empty `{}` resource must not force diff mode.
+                !it.url.isNullOrBlank() && !it.md5.isNullOrBlank() && !it.name.isNullOrBlank()
             }
 
         val buildValue =

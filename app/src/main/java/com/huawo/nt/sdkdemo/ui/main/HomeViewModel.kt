@@ -155,7 +155,8 @@ class HomeViewModel(
                                 str(R.string.log_conn_unexpected_disconnect)
                             },
                         )
-                        if (state.bound && !manualDisconnect) {
+                        // HaWoFit: skip reconnect while Sifli DFU owns the GATT link.
+                        if (state.bound && !manualDisconnect && !repository.isSifliOtaBlockingReconnect()) {
                             scheduleReconnect()
                         }
                     }
@@ -520,6 +521,7 @@ class HomeViewModel(
     private fun scheduleReconnect(delayMs: Long = 2000L) {
         val state = _uiState.value
         if (!state.bound || manualDisconnect || state.device == null) return
+        if (repository.isSifliOtaBlockingReconnect()) return
         reconnectJob?.cancel()
         reconnectJob =
             viewModelScope.launch {
@@ -532,6 +534,7 @@ class HomeViewModel(
         val state = _uiState.value
         val device = state.device ?: return
         if (!state.bound || manualDisconnect) return
+        if (repository.isSifliOtaBlockingReconnect()) return
         if (reconnecting) return
         if (state.phase == DevicePhase.UNBINDING || state.phase == DevicePhase.SYNCING) return
         if (repository.isConnected()) return

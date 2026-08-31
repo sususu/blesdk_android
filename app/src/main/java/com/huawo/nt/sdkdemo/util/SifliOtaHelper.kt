@@ -1,6 +1,7 @@
 package com.huawo.nt.sdkdemo.util
 
 import android.content.Context
+import android.util.Log
 import com.huawo.nt.sdkdemo.data.model.OtaUpgradeInfo
 import com.huawo.nt.sdkdemo.data.remote.OtaFirmwareApi
 import com.sifli.siflidfu.DFUImagePath
@@ -21,25 +22,17 @@ import java.util.zip.ZipInputStream
  *
  * Aligned with HaWoFit `DeviceUpgradeManager.upgrade` QJS / Sifli branch.
  *
- * ## Full-package flow
- * 1. Download `firmwares[0]` zip (MD5 as cache file name) into `cache/device/qjs`.
- * 2. Unzip next to the zip; collect absolute file paths.
- * 3. Map bin file name prefixes → IMAGE_ID:
- *    - `hcpu*.bin`  → [IMAGE_ID_HCPU]
- *    - `lcpu*.bin`  → [IMAGE_ID_LCPU]
- *    - `patch*.bin` → [IMAGE_ID_NAND_LCPU_PATCH]
- *    - `ctrl*.bin`  → [IMAGE_ID_CTRL]
- *    - `outdyn*.bin` / `outroot*.bin` → [IMAGE_ID_DYN] / [IMAGE_ID_RES]
- * 4. Return list for [com.sifli.siflidfu.SifliDFUService.startActionDFUNand].
+ * ## Mode selection (do not change)
+ * - If `diff_ctrl*.bin` exists → **DIFF** (even when `ctrl*` also exists).
+ *   Requires [OtaUpgradeInfo.resource] name/url/md5; append as [IMAGE_ID_NAND_RES].
+ *   Skip outdyn / outroot.
+ * - Else if `ctrl*.bin` exists → **FULL** (+ optional outdyn / outroot).
  *
- * ## Diff-package flow
- * If `diff_ctrl*.bin` is present (checked before plain `ctrl`):
- * - Use that as CTRL image.
- * - Require [OtaUpgradeInfo.resource] (name / url / md5).
- * - Download resource into `cache/device/qjs_diff` and append as [IMAGE_ID_NAND_RES].
- * - Skip outdyn / outroot from the main zip.
+ * Image order: `hcpu? → lcpu? → patch? → ctrl/diff_ctrl → (outdyn/outroot | resource)`
  */
 object SifliOtaHelper {
+    private const val TAG = "SifliOtaHelper"
+
     /**
      * @param onProgress overall prepare progress 0..100
      *                   (main zip ≈ 0..85, optional resource ≈ 85..100)
@@ -49,7 +42,6 @@ object SifliOtaHelper {
         info: OtaUpgradeInfo,
         onProgress: ((Int) -> Unit)? = null,
     ): ArrayList<DFUImagePath> {
-        // Sifli production path only uses the first firmware entry.
         val firmware =
             info.firmwares.firstOrNull()
                 ?: throw IllegalStateException("No firmware package in upgrade info")
@@ -66,8 +58,14 @@ object SifliOtaHelper {
                 subDir = "device/qjs",
             ) { pct -> onProgress?.invoke((pct * 0.85f).toInt().coerceIn(0, 85)) }
 
-        val qjsDir = zipFile.parentFile ?: File(context.cacheDir, "device/qjs")
-        val extracted = unzip(zipFile.absolutePath, qjsDir.absolutePath)
+        // Per-package extract dir avoids leftover bins from other packages.
+        val extractDir = File(zipFile.parentFile ?: context.cacheDir, "extract_${firmware.md5}")
+        if (extractDir.exists()) {
+            extractDir.deleteRecursively()
+        }
+        extractDir.mkdirs()
+        val extracted = unzip(zipFile.absolutePath, extractDir.absolutePath)
+        Log.i(TAG, "unzipped ${extracted.size} files into ${extractDir.absolutePath}")
 
         val list = ArrayList<DFUImagePath>()
         var ctrlPath: DFUImagePath? = null
@@ -77,36 +75,51 @@ object SifliOtaHelper {
 
         for (absolutePath in extracted) {
             val name = File(absolutePath).name
-            // Prefer diff_ctrl over ctrl (same IMAGE_ID_CTRL slot).
-            if (name.startsWith("diff_ctrl") && name.endsWith(".bin")) {
+            val lower = name.lowercase()
+            // Prefer diff_ctrl over ctrl when scanning (same IMAGE_ID_CTRL slot).
+            if (lower.startsWith("diff_ctrl") && lower.endsWith(".bin")) {
                 diffCtrlPath = DFUImagePath(absolutePath, null, IMAGE_ID_CTRL)
-            } else if (name.startsWith("ctrl") && name.endsWith(".bin")) {
+                Log.i(TAG, "found diff_ctrl: $name")
+            } else if (lower.startsWith("ctrl") && lower.endsWith(".bin")) {
                 ctrlPath = DFUImagePath(absolutePath, null, IMAGE_ID_CTRL)
+                Log.i(TAG, "found ctrl: $name")
             }
-            if (name.startsWith("hcpu") && name.endsWith(".bin")) {
+            if (lower.startsWith("hcpu") && lower.endsWith(".bin")) {
                 list += DFUImagePath(absolutePath, null, IMAGE_ID_HCPU)
+                Log.i(TAG, "found hcpu: $name")
             }
-            if (name.startsWith("lcpu") && name.endsWith(".bin")) {
+            if (lower.startsWith("lcpu") && lower.endsWith(".bin")) {
                 list += DFUImagePath(absolutePath, null, IMAGE_ID_LCPU)
+                Log.i(TAG, "found lcpu: $name")
             }
-            if (name.startsWith("patch") && name.endsWith(".bin")) {
+            if (lower.startsWith("patch") && lower.endsWith(".bin")) {
                 list += DFUImagePath(absolutePath, null, IMAGE_ID_NAND_LCPU_PATCH)
+                Log.i(TAG, "found patch: $name")
             }
-            if (name.startsWith("outdyn") && name.endsWith(".bin")) {
+            if (lower.startsWith("outdyn") && lower.endsWith(".bin")) {
                 outdynPath = DFUImagePath(absolutePath, null, IMAGE_ID_DYN)
+                Log.i(TAG, "found outdyn: $name")
             }
-            if (name.startsWith("outroot") && name.endsWith(".bin")) {
+            if (lower.startsWith("outroot") && lower.endsWith(".bin")) {
                 outrootPath = DFUImagePath(absolutePath, null, IMAGE_ID_RES)
+                Log.i(TAG, "found outroot: $name")
             }
         }
 
-        // Diff OTA: CTRL from diff_ctrl + separate NAND resource package.
+        // Prefer DIFF whenever diff_ctrl exists (HaWoFit / production rule).
         if (diffCtrlPath != null) {
             list += diffCtrlPath
             val resource = info.resource
-            if (resource?.url.isNullOrBlank() || resource?.md5.isNullOrBlank() || resource?.name.isNullOrBlank()) {
+            if (resource?.url.isNullOrBlank() ||
+                resource?.md5.isNullOrBlank() ||
+                resource?.name.isNullOrBlank()
+            ) {
                 throw IllegalStateException("Diff OTA requires resource name/url/md5")
             }
+            Log.i(
+                TAG,
+                "mode=DIFF resource=${resource.name} from=${resource.fromVersion} to=${resource.toVersion}",
+            )
             val resFile =
                 OtaFirmwareApi.downloadToCache(
                     context = context,
@@ -117,6 +130,7 @@ object SifliOtaHelper {
                 ) { pct -> onProgress?.invoke(85 + (pct * 0.15f).toInt().coerceIn(0, 15)) }
             list += DFUImagePath(resFile.absolutePath, null, IMAGE_ID_NAND_RES)
             onProgress?.invoke(100)
+            logFinalList(list)
             return list
         }
 
@@ -125,11 +139,19 @@ object SifliOtaHelper {
             list += ctrlPath
             outdynPath?.let { list += it }
             outrootPath?.let { list += it }
+            Log.i(TAG, "mode=FULL ctrl=${File(ctrlPath.imagePath).name}")
             onProgress?.invoke(100)
+            logFinalList(list)
             return list
         }
 
         throw IllegalStateException("Zip missing ctrl / diff_ctrl")
+    }
+
+    private fun logFinalList(list: List<DFUImagePath>) {
+        list.forEachIndexed { index, path ->
+            Log.i(TAG, "DFU[$index] id=${path.imageType} path=${path.imagePath}")
+        }
     }
 
     /**
@@ -145,7 +167,10 @@ object SifliOtaHelper {
                 val buffer = ByteArray(1024)
                 var entry = zis.nextEntry
                 while (entry != null) {
-                    val out = File(destDir, entry.name)
+                    val out = File(destDir, entry.name).canonicalFile
+                    if (!out.path.startsWith(dir.canonicalPath)) {
+                        throw IllegalStateException("Zip entry outside target dir: ${entry.name}")
+                    }
                     if (entry.isDirectory) {
                         out.mkdirs()
                     } else {

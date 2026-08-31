@@ -256,9 +256,14 @@ Download firmwares[0] zip (+ optional diff resource) → MD5 → unzip
         │
         ▼
 Map bins → DFUImagePath list (SifliOtaHelper)
+  · diff_ctrl present → DIFF (resource required; ctrl ignored)
+  · else ctrl → FULL
         │
         ▼
-SifliDFUService.startActionDFUNand(mac, paths, DFU_MODE_NORMAL, 0)
+bindService(SifliDFUService) → pause auto-reconnect → delay 1.5s
+        │
+        ▼
+ISifliDFUService.startActionDFUNand(boundMac, paths, DFU_MODE_NORMAL, 0)
         │
         ▼
 LocalBroadcast progress / log / exit → UI
@@ -277,7 +282,7 @@ While OTA is busy (check / download / DFU):
 | Constant | Value |
 |----------|--------|
 | Check API | `POST https://test.huawo-wear.com/api/v1/devices/upgrades` |
-| File CDN | `https://static.huawo-wear.com/files/` |
+| File CDN | `https://test.huawo-wear.com/files/` |
 | `customerCode` | `Huawo` |
 
 **Request body:** `currentVersion`, `currentBuild`, `productCode`, `customerCode`, `deviceId`  
@@ -327,7 +332,7 @@ Change these before pointing at production backends or shipping:
 | What | Where | Demo value |
 |------|--------|------------|
 | OTA API host | `OtaFirmwareApi.BASE_URL` | `https://test.huawo-wear.com/` |
-| Firmware CDN | `OtaFirmwareApi.FILE_BASE_URL` | `https://static.huawo-wear.com/files/` |
+| Firmware CDN | `OtaFirmwareApi.FILE_BASE_URL` | `https://test.huawo-wear.com/files/` |
 | Customer code | `OtaFirmwareApi.CUSTOMER_CODE` | `Huawo` |
 | App id (OTA header) | `applicationId` in `app/build.gradle` | `com.huawo.nt.sdkdemo` |
 | App version (OTA header) | `versionName` | `1.0` |
@@ -346,7 +351,7 @@ Loaded from `app/libs/` (`BmpConvert*.aar` is excluded):
 | AAR | Role |
 |-----|------|
 | `BluetoothSDK-2.5.4.126.aar` | Main BLE SDK |
-| `SifliDFU-release.aar` | Sifli NAND DFU OTA service |
+| `SifliDFU-1.1.99.aar` | Sifli NAND DFU OTA service (`ISifliDFUService` / bindService) |
 | `qjs-watchface-15.0.16.aar` | `SifliWatchSDK` (zip push for music / album / AGPS) |
 | `sifliezipsdk-2.3.9.aar` | Sifli ezip |
 | `siflicore-1.2.11.aar` | Sifli core |

@@ -127,6 +127,27 @@ class BleRepository(private val application: Application) {
     @Volatile
     private var connectionListenerRegistered = false
 
+    /**
+     * When true, [com.huawo.nt.sdkdemo.ui.main.HomeViewModel] must not auto-reconnect.
+     * Same role as HaWoFit `ServiceManager.isQJSOTAServiceRunning()` during Sifli DFU:
+     * DFU opens its own GATT; SDK reconnect would fight it and fail the upgrade.
+     */
+    @Volatile
+    var sifliOtaInProgress: Boolean = false
+        private set
+
+    fun setSifliOtaInProgress(inProgress: Boolean) {
+        sifliOtaInProgress = inProgress
+    }
+
+    /** True while demo OTA flag is set or Sifli DFU service reports busy. */
+    fun isSifliOtaBlockingReconnect(): Boolean {
+        if (sifliOtaInProgress) return true
+        return runCatching {
+            com.sifli.siflidfu.SifliDFUService.isDfuBusy()
+        }.getOrDefault(false)
+    }
+
     private val _connectionEvents = MutableSharedFlow<ConnectionEvent>(extraBufferCapacity = 16)
     val connectionEvents: SharedFlow<ConnectionEvent> = _connectionEvents.asSharedFlow()
 
@@ -291,6 +312,15 @@ class BleRepository(private val application: Application) {
                 },
             )
         }
+    }
+
+    /**
+     * Drop the SDK GATT session but keep local bind / reconnect metadata.
+     * Used before Sifli DFU so [com.sifli.siflidfu.SifliDFUService] can open its own connection.
+     */
+    fun disconnectWithoutClean() {
+        BluetoothSDK.disconnectWithoutClean()
+        emitConnection(false)
     }
 
     suspend fun startBind() = awaitVoid("startBind failed") { BluetoothSDK.startBind(it) }
