@@ -270,7 +270,8 @@ class JLOtaUpgradeViewModel(
                         throw IllegalStateException("JL OTA download invalid: ${otaFile.absolutePath}")
                     }
                     appendLog(str(R.string.ota_log_download_ok, otaFile.name, otaFile.length()))
-                    setPhase(str(R.string.ota_phase_push), 40)
+                    // BLE OTA is a new phase: show SDK transfer progress from 0% instead of overall-task progress.
+                    setPhase(str(R.string.ota_phase_push), 0)
                     appendLog("JL OTA startOta path=${otaFile.absolutePath}")
                     wlOtaStarted = true
                     lastTransferProgress = -1
@@ -300,7 +301,7 @@ class JLOtaUpgradeViewModel(
         object : OtaTransferCallback {
             override fun onReady() {
                 appendLog("JL OTA SDK ready")
-                setPhase(str(R.string.ota_phase_push), 40)
+                setPhase(str(R.string.ota_phase_push), 0)
             }
 
             override fun onProgress(progress: Float) {
@@ -308,7 +309,7 @@ class JLOtaUpgradeViewModel(
                 if (transferProgress == lastTransferProgress) return
                 lastTransferProgress = transferProgress
                 updateProgress(
-                    (40 + transferProgress * 0.6f).toInt().coerceIn(40, 100),
+                    transferProgress,
                     str(R.string.ota_phase_push),
                 )
             }
