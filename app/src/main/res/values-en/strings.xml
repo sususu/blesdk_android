@@ -218,11 +218,10 @@
     <string name="ai_wf_record_mode_watch">Watch mic (recordFromDevice=true)</string>
     <string name="ai_wf_record_mode_phone">Phone mic (App AudioRecord, no SCO)</string>
     <string name="ai_wf_record_mode_sco">Watch via phone SCO (HFP mic → phone)</string>
-    <string name="ai_wf_platform_auto">Auto (protocol≥100 → JIELI, else SIFLI)</string>
     <string name="ai_wf_platform_sifli">SIFLI</string>
     <string name="ai_wf_platform_jieli">JIELI</string>
     <string name="ai_wf_platform_realtek">REALTEK</string>
-    <string name="ai_wf_fw_record_hint">Firmware: recordFromDevice=%1$s, protocol=%2$d → inferred platform=%3$s</string>
+    <string name="ai_wf_fw_record_hint">Firmware: recordFromDevice=%1$s</string>
     <string name="ai_wf_fw_record_unknown">Firmware: DeviceInfo not loaded yet (connect &amp; wait)</string>
     <string name="ai_wf_applied_path">Applied: recordFromDevice=%1$s, platform=%2$s, speakOnWatch(debug)=%3$s</string>
     <string name="ai_wf_record_watch_hint">Watch-mic mode: speak on the watch. Phone Record is for App/SCO debug only.</string>

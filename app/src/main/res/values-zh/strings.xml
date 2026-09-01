@@ -218,11 +218,10 @@
     <string name="ai_wf_record_mode_watch">手表麦克风（recordFromDevice=true）</string>
     <string name="ai_wf_record_mode_phone">手机麦克风（无 SCO）</string>
     <string name="ai_wf_record_mode_sco">手表经手机 SCO（HFP 麦 → 手机）</string>
-    <string name="ai_wf_platform_auto">自动（protocol≥100 → JIELI，否则 SIFLI）</string>
     <string name="ai_wf_platform_sifli">SIFLI</string>
     <string name="ai_wf_platform_jieli">JIELI</string>
     <string name="ai_wf_platform_realtek">REALTEK</string>
-    <string name="ai_wf_fw_record_hint">固件：recordFromDevice=%1$s，protocol=%2$d → 推断平台=%3$s</string>
+    <string name="ai_wf_fw_record_hint">固件：recordFromDevice=%1$s</string>
     <string name="ai_wf_fw_record_unknown">固件：尚未读到 DeviceInfo（请先连接）</string>
     <string name="ai_wf_applied_path">已应用：recordFromDevice=%1$s，platform=%2$s，speakOnWatch(调试)=%3$s</string>
     <string name="ai_wf_record_watch_hint">手表直录模式：请在手表上说话。手机「录音」仅用于 App/SCO 调试。</string>
