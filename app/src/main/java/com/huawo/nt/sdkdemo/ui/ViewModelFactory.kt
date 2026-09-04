@@ -14,6 +14,7 @@ import com.huawo.nt.sdkdemo.ui.features.JLOtaUpgradeViewModel
 import com.huawo.nt.sdkdemo.ui.features.MusicTransferViewModel
 import com.huawo.nt.sdkdemo.ui.features.NotifyViewModel
 import com.huawo.nt.sdkdemo.ui.features.OtaUpgradeViewModel
+import com.huawo.nt.sdkdemo.ui.features.offlinemap.OfflineMapDownloadViewModel
 import com.huawo.nt.sdkdemo.ui.main.HomeViewModel
 import com.huawo.nt.sdkdemo.ui.scan.ScanViewModel
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowViewModel
@@ -55,6 +56,8 @@ class ViewModelFactory(
                 OnlineWatchfaceViewModel(application, repository) as T
             modelClass.isAssignableFrom(JLOnlineWatchfaceViewModel::class.java) ->
                 JLOnlineWatchfaceViewModel(application, repository) as T
+            modelClass.isAssignableFrom(OfflineMapDownloadViewModel::class.java) ->
+                OfflineMapDownloadViewModel(application, repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
         }
     }

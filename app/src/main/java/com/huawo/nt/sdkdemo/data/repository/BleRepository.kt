@@ -59,7 +59,15 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.Spo2Callback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SportsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.StressCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.StringListCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntValueCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.BoolCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.UpgradeStatusCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.MapTheme
+import android.location.Location
+import com.huawo.nt.sdkdemo.data.model.OfflineMapTransferCallback
+import com.huawo.nt.sdkdemo.data.model.PiMapInfo
+import com.huawo.nt.sdkdemo.data.remote.OfflineMapApi
+import com.huawo.nt.sdkdemo.util.SifliOtaHelper
 import com.huawo.sdk.bluetoothsdk.interfaces.ota.OtaCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.ota.OtaData
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.UpgradeStatus
@@ -1940,5 +1948,227 @@ class BleRepository(private val application: Application) {
             awake = awakeDuration.toInt(),
             rem = remDuration.toInt(),
         )
+
+    // -------------------------------------------------------------------------
+    // Offline map
+    // -------------------------------------------------------------------------
+
+    @Volatile
+    private var sppOfflineMapTask: SppFilesTransferTask? = null
+
+    suspend fun getDeviceMapAvailableStorageKb(): Int =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getDeviceMapAvailableStorage(
+                object : IntValueCallback() {
+                    override fun onSuccess(value: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(value)
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(
+                                    SdkException(code, "getDeviceMapAvailableStorage failed"),
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    suspend fun setDeviceMapAuthCode(uuid: String, authCode: String) =
+        awaitVoid("setDeviceMapAuthCode failed") {
+            BluetoothSDK.setDeviceMapAuthCode(uuid, authCode, it)
+        }
+
+    fun setDeviceMapRange(
+        center: Location,
+        maxLon: Double,
+        minLon: Double,
+        maxLat: Double,
+        minLat: Double,
+    ) {
+        BluetoothSDK.setDeviceMapRange(
+            center,
+            maxLon,
+            minLon,
+            maxLat,
+            minLat,
+            object : BoolCallback() {
+                override fun onSuccess() = Unit
+                override fun onFail(code: Int) = Unit
+            },
+        )
+    }
+
+    suspend fun setDeviceMapTheme(theme: MapTheme) =
+        awaitVoid("setDeviceMapTheme failed") {
+            BluetoothSDK.setDeviceMapTheme(theme, it)
+        }
+
+    fun isOfflineMapTransferring(): Boolean =
+        SppFilesTransferTask.isTransferring() || SifliWatchSDK.getInstance().isWorking
+
+    /**
+     * Download [PiMapInfo] zip, verify MD5, then push via SPP (if classic BT up) or
+     * [SifliWatchSDK.setMapData] (same strategy as HaWoFit OfflineMapBottomPopup).
+     */
+    fun pushOfflineMap(
+        context: android.content.Context,
+        info: PiMapInfo,
+        callback: OfflineMapTransferCallback,
+    ) {
+        if (isOfflineMapTransferring() || isMusicTransferring() || isAlbumTransferring()) {
+            callback.onFail(-2, "Transfer already in progress")
+            return
+        }
+        Thread {
+            try {
+                val zip =
+                    OfflineMapApi.downloadToCache(context, info.downloadUrl) { p ->
+                        mainHandler.post { callback.onDownloadProgress(p) }
+                    }
+                val md5 = OfflineMapApi.md5Of(zip)
+                if (!md5.equals(info.md5, ignoreCase = true)) {
+                    mainHandler.post { callback.onFail(997, "MD5 mismatch") }
+                    return@Thread
+                }
+                mainHandler.post {
+                    pushOfflineMapFile(context, zip, md5, callback)
+                }
+            } catch (e: Exception) {
+                mainHandler.post {
+                    callback.onFail(10004, e.message ?: e.javaClass.simpleName)
+                }
+            }
+        }.start()
+    }
+
+    private fun pushOfflineMapFile(
+        context: android.content.Context,
+        zip: File,
+        md5: String,
+        callback: OfflineMapTransferCallback,
+    ) {
+        BluetoothSDK.getBTConnectionState(
+            object : BoolValueCallback() {
+                override fun onSuccess(btConnected: Boolean) {
+                    mainHandler.post {
+                        if (btConnected) {
+                            pushOfflineMapViaSpp(context, zip, md5, callback, allowFallback = true)
+                        } else {
+                            pushOfflineMapViaBle(zip, callback)
+                        }
+                    }
+                }
+
+                override fun onFail(code: Int) {
+                    mainHandler.post { pushOfflineMapViaBle(zip, callback) }
+                }
+            },
+        )
+    }
+
+    private fun pushOfflineMapViaSpp(
+        context: android.content.Context,
+        zip: File,
+        md5: String,
+        callback: OfflineMapTransferCallback,
+        allowFallback: Boolean,
+    ) {
+        val unzipDir = File(context.cacheDir, md5)
+        val paths =
+            try {
+                SifliOtaHelper.unzip(zip.absolutePath, unzipDir.absolutePath)
+            } catch (e: Exception) {
+                callback.onFail(71, e.message ?: "Unzip failed")
+                return
+            }
+        if (paths.isEmpty()) {
+            callback.onFail(72, "Files empty")
+            return
+        }
+        val files = paths.map { File(it) }
+        val task = SppFilesTransferTask()
+        sppOfflineMapTask = task
+        var previous = -1
+        task.sendOfflineMap(
+            files,
+            object : OtaCallback() {
+                override fun onReady() = Unit
+
+                override fun onUpload(progress: Float) {
+                    val pct = (progress * 100).toInt().coerceIn(0, 100)
+                    if (pct != previous) {
+                        previous = pct
+                        mainHandler.post { callback.onInstallProgress(pct) }
+                    }
+                }
+
+                override fun onSuccess() {
+                    mainHandler.post {
+                        sppOfflineMapTask = null
+                        callback.onSuccess()
+                    }
+                }
+
+                override fun onFail(code: Int) {
+                    mainHandler.post {
+                        sppOfflineMapTask = null
+                        if (code == 26) {
+                            callback.onFail(code, "Cancelled")
+                            return@post
+                        }
+                        if (!BluetoothSDK.isBluetoothEnabled() || !BluetoothSDK.isConnected()) {
+                            callback.onFail(code, "Disconnected")
+                            return@post
+                        }
+                        if (allowFallback) {
+                            pushOfflineMapViaBle(zip, callback)
+                        } else {
+                            callback.onFail(code, "SPP failed")
+                        }
+                    }
+                }
+            },
+        )
+    }
+
+    private fun pushOfflineMapViaBle(zip: File, callback: OfflineMapTransferCallback) {
+        val mac = BluetoothSDK.getConnectedDevice()?.mac
+        if (mac.isNullOrBlank()) {
+            callback.onFail(-1, "Disconnected")
+            return
+        }
+        SifliWatchSDK.getInstance().setMapData(
+            mac,
+            zip.absolutePath,
+            object : SifliCallback {
+                override fun onError(code: Int) {
+                    mainHandler.post { callback.onFail(code, "BLE map push failed") }
+                }
+
+                override fun onSuccess() {
+                    mainHandler.post { callback.onSuccess() }
+                }
+
+                override fun onProgress(current: Long, total: Long) {
+                    val pct =
+                        if (total <= 0L) 0
+                        else ((current.toDouble() / total) * 100).toInt().coerceIn(0, 100)
+                    mainHandler.post { callback.onInstallProgress(pct) }
+                }
+            },
+        )
+    }
+
+    fun cancelOfflineMapTransfer() {
+        runCatching { sppOfflineMapTask?.stopSending() }
+        sppOfflineMapTask = null
+        runCatching { SifliWatchSDK.getInstance().stop() }
+    }
 
 }

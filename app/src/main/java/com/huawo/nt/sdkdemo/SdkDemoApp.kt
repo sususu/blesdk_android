@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.amap.api.maps.MapsInitializer
 import com.huawo.ai.AiCenter
 import com.huawo.ai.utils.SpUtils
 import com.huawo.nt.sdkdemo.data.repository.BleRepository
@@ -49,6 +50,12 @@ class SdkDemoApp : Application() {
         // Watchface file-push manager (SFWatchfaceFilePushManager) lives behind this singleton.
         WatchfaceSDK.getInstance().init(this)
         bleRepository = BleRepository(this)
+
+        // AMap privacy agreement must run before any MapView is created.
+        runCatching {
+            MapsInitializer.updatePrivacyShow(this, true, true)
+            MapsInitializer.updatePrivacyAgree(this, true)
+        }
 
         // AiCenter process-level bind (required before init/startWorking on feature screens).
         SpUtils.init(this)

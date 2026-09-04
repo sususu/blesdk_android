@@ -27,6 +27,7 @@ import com.huawo.nt.sdkdemo.ui.features.JLOtaUpgradeFragment
 import com.huawo.nt.sdkdemo.ui.features.MusicTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.NotifyFragment
 import com.huawo.nt.sdkdemo.ui.features.OtaUpgradeFragment
+import com.huawo.nt.sdkdemo.ui.features.offlinemap.OfflineMapDownloadFragment
 import com.huawo.nt.sdkdemo.ui.scan.ScanConnectFragment
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowDialogFragment
 import com.huawo.nt.sdkdemo.ui.watchface.WatchfaceFragment
@@ -106,6 +107,9 @@ class HomeFragment : Fragment() {
         }
         binding.btnAi.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(AiCenterFragment())
+        }
+        binding.btnOfflineMap.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(OfflineMapDownloadFragment())
         }
         binding.btnWatchfaceJieli.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(JLWatchfaceFragment())
@@ -217,6 +221,7 @@ class HomeFragment : Fragment() {
         binding.btnOtaJieli.isEnabled = canFeature
         binding.btnWatchface.isEnabled = canFeature
         binding.btnAi.isEnabled = canFeature
+        binding.btnOfflineMap.isEnabled = canFeature
         binding.btnWatchfaceJieli.isEnabled = canFeature
 
         logAdapter.submit(state.logs)

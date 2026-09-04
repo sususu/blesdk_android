@@ -23,6 +23,14 @@ data class BleDeviceInfo(
     val mapAuthorized: Boolean = false,
 )
 
+/** Offline map package metadata from native `optionalMap/generateFile`. */
+data class PiMapInfo(
+    val downloadUrl: String,
+    val md5: String,
+    val uncompressedSize: Long? = null,
+    val compressedSize: Long? = null,
+)
+
 data class BoundDeviceRecord(
     val macAddress: String,
     val name: String? = null,
@@ -103,6 +111,14 @@ interface AgpsTransferCallback {
     fun onProgress(progress: Float)
     fun onSuccess()
     fun onFail(code: Int, message: String)
+}
+
+/** Offline map zip download + SPP/BLE install progress (main thread). */
+interface OfflineMapTransferCallback {
+    fun onDownloadProgress(progress: Float)
+    fun onInstallProgress(percent: Int)
+    fun onSuccess()
+    fun onFail(code: Int, message: String?)
 }
 
 data class BleActivity(

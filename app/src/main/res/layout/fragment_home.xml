@@ -306,6 +306,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/feature_ai" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_offline_map"
+            style="@style/Widget.SDKDemo.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/feature_offline_map" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

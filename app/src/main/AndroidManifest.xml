@@ -56,6 +56,20 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.SDKDemo">
+
+        <!-- Keys must be registered for applicationId + signing SHA1; placeholders reuse HaWoFit demo keys. -->
+        <meta-data
+            android:name="com.amap.api.v2.apikey"
+            android:value="@string/amap_api_key" />
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_api_key" />
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+        <service android:name="com.amap.api.location.APSService" />
+
         <activity
             android:name=".ui.main.MainActivity"
             android:exported="true"

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="OfflineCropMaskView">
+        <attr name="scanFrameWidth" format="dimension" />
+        <attr name="scanFrameHeight" format="dimension" />
+        <attr name="frameTopOffset" format="dimension" />
+    </declare-styleable>
+</resources>
