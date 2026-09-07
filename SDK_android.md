@@ -350,7 +350,7 @@ void onFail(int code); // 参见 ErrorCode
 | `IntValueCallback` / `StringValueCallback` / `BoolValueCallback` | `onSuccess(value)` |
 | `ConnectCallback` | `onSuccess(Device device)` |
 | `ScanCallback` | `onStarted` / `onResult` / `onFinished` |
-| `ActivityDataCallback` | `onSports` / `onSleeps` / `onHeartrates` / `onHrvs` / `onPais` |
+| `ActivityDataCallback` | `onSports` / `onSleeps` / `onHeartrates` / `onHrvs` / `onStress` / `onSpo2` / `onPais`；V2 健康数据失败还可回调 `onFail(ActivityDataType, code)` |
 | `OtaCallback` | `onReady` / `onUpload(progress)` / `onSuccess` / `onFail` |
 
 包路径：
@@ -785,19 +785,31 @@ BluetoothSDK.getActivityData(new ActivityDataCallback() {
 
 #### WL 协议 V2：`getActivityDataV2`
 
-按需指定类型（枚举在 `com.huawo.sdk.bluetoothsdk.wl.models.ActivityDataType`）：
+接口签名：
 
-| ActivityDataType | 含义 | 回调落点 |
-|------------------|------|----------|
+```java
+BluetoothSDK.getActivityDataV2(
+        ActivityDataType[] dataTypes,
+        ActivityDataCallback callback
+);
+```
+
+该接口用于杰理  协议。调用方按需传入数据类型数组，SDK 严格按数组顺序串行执行每一种类型：先通过 `GeActivityHead` 获取头包；存在数据时，再通过 `GetActivityDataV2` 拉取数据包，经 `ParseWlDataUtils` 解析后进入对应业务回调；当前类型处理结束后才请求下一种类型。
+
+枚举路径：`com.huawo.sdk.bluetoothsdk.wl.models.ActivityDataType`。
+
+| ActivityDataType | 含义 | `getActivityDataV2` 回调落点 |
+|------------------|------|-------------------------------|
 | `STEP` | 步数活动 | `onSports(List<Sport>)` |
-| `SLEEP` | 睡眠 | `onSleeps(List<Sleep>)` |
+| `SLEEP` | 睡眠 | `onSleeps(List<Sleep>)`；内部先解析 `SleepPoint`，再通过 `Sleep.addUp` 汇总 |
 | `HEART_RATE` | 心率 | `onHeartrates(List<Heartrate>)` |
-| `STRESS` | 压力 | 进 `onHrvs`（`Hrv.stress`） |
-| `BLOOD_OXYGEN` | 血氧 | 进 `onHrvs`（`Hrv.spo2`） |
-| `WORKOUTS` | 运动记录 | 一般用 `getWorkoutV2`，不建议指望本批量接口 |
-| `AIRECORD` | AI 录音 | 另有专用接口 |
+| `STRESS` | 压力 | `onStress(List<Stress>)` |
+| `BLOOD_OXYGEN` | 血氧 | `onSpo2(List<Spo2>)` |
+| `HRV` | HRV | `onHrvs(List<Hrv>)` |
+| `WORKOUTS` | 运动记录 | 当前批量管理器不解析、不回调；请使用 `getWorkoutV2` |
+| `AIRECORD` | AI 录音 | 当前批量管理器不解析、不回调；请使用 `getAiRecordDataV2` |
 
-**压力 + 血氧同时请求时**：SDK 会按 `time` 合并为 `Hrv` 再 `onHrvs`；只请求其中一种时，也会包装成 `Hrv` 列表（另一字段为默认 0）。
+`STRESS`、`BLOOD_OXYGEN`、`HRV` 是三个独立的数据类型，分别回调 `Stress`、`Spo2`、`Hrv`，SDK 不会在 `getActivityDataV2` 中按时间合并它们。
 
 ```java
 ActivityDataType[] types = new ActivityDataType[]{
@@ -805,25 +817,35 @@ ActivityDataType[] types = new ActivityDataType[]{
         ActivityDataType.SLEEP,
         ActivityDataType.HEART_RATE,
         ActivityDataType.STRESS,
-        ActivityDataType.BLOOD_OXYGEN
+        ActivityDataType.BLOOD_OXYGEN,
+        ActivityDataType.HRV
 };
 BluetoothSDK.getActivityDataV2(types, new ActivityDataCallback() {
     @Override public void onSports(List<Sport> sportList) { }
     @Override public void onSleeps(List<Sleep> sleepList) { }
     @Override public void onHeartrates(List<Heartrate> list) { }
-    @Override public void onHrvs(List<Hrv> hrvList) { /* 血氧+压力 */ }
-    @Override public void onPais(List<PAI> paiList) { /* V2 批量通常无 PAI，可忽略 */ }
+    @Override public void onStress(List<Stress> stressList) { }
+    @Override public void onSpo2(List<Spo2> spo2List) { }
+    @Override public void onHrvs(List<Hrv> hrvList) { /* 独立的 HRV 数据 */ }
+    @Override public void onPais(List<PAI> paiList) { /* V2 不回调 PAI */ }
+
+    @Override
+    public void onFail(ActivityDataType dataType, int code) {
+        // HRV、压力或血氧的头包/数据包请求失败
+    }
+
     @Override public void onFail(int code) { }
 });
 ```
 
-```java
-if (BluetoothSDK.isWlProtocol()) {
-    // 优先 getActivityDataV2
-} else {
-    BluetoothSDK.getActivityData(...);
-}
-```
+回调边界：
+
+1. 上述六种已支持的类型无数据时，SDK 回调该类型对应的空列表，并继续下一类型。
+2. `HRV`、`STRESS`、`BLOOD_OXYGEN` 的头包或数据包请求失败时，SDK 先回调 `onFail(ActivityDataType, code)`，再回调对应空列表，并继续下一类型；这里不会改为调用通用的 `onFail(int)`。
+3. 上述六种已支持类型发生数据解析异常时，SDK 回调该类型对应的空列表，并继续下一类型。
+4. `dataTypes` 为 `null` 或空数组时，不会使用默认类型；SDK 会依次回调心率、HRV、压力、血氧、睡眠和步数的空列表后直接返回。
+5. 当前没有“全部类型处理完成”的统一回调；如业务需要统一收尾，应由调用方按实际请求的已支持类型统计对应回调。
+6. 该接口不自动判断或切换平台：杰理平台使用 `getActivityDataV2`，思澈平台使用 `getActivityData`。
 
 ---
 
@@ -876,11 +898,11 @@ for (Heartrate hr : heartrateList) {
 
 ---
 
-#### 实体说明：`Hrv`（压力 / 血氧 / 疲劳等）
+#### 实体说明：`Hrv`（HRV / 老协议复合健康数据）
 
-**含义**：老协议里常用一张结构承载压力、血氧、疲劳；类注释为 *stress/spo2 health data*。WL V2 在同时拉 `STRESS`+`BLOOD_OXYGEN` 时，也会合并进该结构再回调 `onHrvs`。  
-**回调**：`onHrvs`  
-**删除**：老协议 `delHrv`；WL 侧血氧/压力也可能对应 `delBlood` / 压力删除接口，以产品协议为准。
+**含义**：老协议里常用一张结构承载压力、血氧、疲劳；类注释为 *stress/spo2 health data*。杰理 V2 的 `HRV` 类型会独立解析为该结构并回调 `onHrvs`；`STRESS`、`BLOOD_OXYGEN` 分别回调 `onStress`、`onSpo2`，不会合并进 `Hrv`。
+**回调**：老协议复合数据及 杰理 V2 的 `HRV` 类型使用 `onHrvs`
+**删除**：老协议使用 `delHrv`；杰理 V2 的 HRV、压力、血氧分别使用 `delHrvV2`、`delStress`、`delBlood`。
 
 | 字段 | 类型 | 单位 / 说明 |
 |------|------|-------------|
@@ -958,7 +980,7 @@ for (Sleep sleep : sleepList) {
 
 #### 实体说明：`PAI`
 
-**含义**：Personal Activity Intelligence（个人活动智能指数）日/段统计。批量接口主要在**老协议** `getActivityData` 的 `onPais` 中出现；WL 批量 V2 通常不走 PAI，需产品确认是否另有接口。  
+**含义**：Personal Activity Intelligence（个人活动智能指数）日/段统计。批量接口主要在**老协议** `getActivityData` 的 `onPais` 中出现；WL 批量 V2 中暂无 PAI。  
 **回调**：`onPais`  
 **删除**：`delPAIs`
 
@@ -989,7 +1011,7 @@ for (PAI pai : paiList) {
 
 #### 使用建议
 
-1. 先 `isWlProtocol()`，再选 `getActivityData` 或 `getActivityDataV2`。  
+1. 杰理平台调用 `getActivityDataV2`， 思澈平台调用 `getActivityData`。  
 2. 各 `onXxx` **独立入库**；不要假设回调顺序固定。  
 3. 入库成功后再 `del*`，避免丢数与重复。  
 4. 卡路里单位是 **cal**；展示千卡需 `/1000`。  
@@ -1353,6 +1375,10 @@ if (point.isSuspendedEnd()) { /* 暂停结束继续：字段=-1 或 state==3 */ 
 
 ### 11.1 闹钟
 
+`Alarm.id` 是设备端闹钟的唯一标识，编辑和删除都依赖该值。通用接口与杰理 接口的新增 ID 逻辑不同。
+
+基础数据与查询：
+
 ```java
 Alarm alarm = new Alarm();
 alarm.setOn(true);
@@ -1368,13 +1394,63 @@ BluetoothSDK.getAlarms(new AlarmsCallback() {
     @Override public void onSuccess(List<Alarm> list) { }
     @Override public void onFail(int code) { }
 });
+```
 
-if (BluetoothSDK.isWlProtocol()) {
-    BluetoothSDK.addAlarmV2(alarm, boolCallback);
-} else {
-    BluetoothSDK.addAlarm(alarm, boolCallback); // SDK 内会自动分配 id
+通用/老协议新增闹钟时，直接调用 `addAlarm`，SDK 会先向设备查询可用 ID，并将设备返回的 ID 写入 `alarm`：
+
+```java
+BluetoothSDK.addAlarm(alarm, boolCallback);
+```
+
+杰理  新增闹钟时，闹钟 ID 固定使用 `1~5`。`addAlarmV2` 不会查询、生成或校验 ID，调用方必须先读取设备当前闹钟，从 `1~5` 中选择最小的未占用 ID，再写入 `Alarm.id` 后发送：
+
+```java
+private static int findAvailableJlAlarmId(List<Alarm> alarms) {
+    boolean[] used = new boolean[6];
+    if (alarms != null) {
+        for (Alarm item : alarms) {
+            int id = item.getId();
+            if (id >= 1 && id <= 5) {
+                used[id] = true;
+            }
+        }
+    }
+    for (int id = 1; id <= 5; id++) {
+        if (!used[id]) return id;
+    }
+    return -1;
 }
 
+BluetoothSDK.getAlarms(new AlarmsCallback() {
+    @Override
+    public void onSuccess(List<Alarm> alarms) {
+        int alarmId = findAvailableJlAlarmId(alarms);
+        if (alarmId == -1) {
+            // 1~5 均已占用：杰理闹钟已满（最多 5 个），不要调用 addAlarmV2。
+            return;
+        }
+        alarm.setId(alarmId);
+        BluetoothSDK.addAlarmV2(alarm, boolCallback);
+    }
+
+    @Override
+    public void onFail(int code) {
+        // 读取失败时无法安全分配 ID，不要继续新增。
+    }
+});
+```
+
+杰理 ID 使用规则：
+
+1. 只能从 `1~5` 中分配，不能使用列表数量直接作为 ID，也不要使用范围为 `1~254` 的 `Alarm.generateId`。
+2. 必须以设备 `getAlarms` 返回的 ID 为准；例如已有 ID `1、3` 时，新闹钟应使用 `2`。
+3. 五个 ID 全部占用时，应提示“杰理闹钟已达到最大数量（最多 5 个）”，不能覆盖已有闹钟。
+4. 新增成功后建议重新调用 `getAlarms` 刷新本地数据；不要并发执行多个“查询 ID → 新增”流程，避免选中相同 ID。
+5. 编辑时保留原 `Alarm.id` 调用 `editAlarm`；删除时将同一 ID 传给 `delAlarmBy`。
+
+编辑与删除：
+
+```java
 BluetoothSDK.editAlarm(alarm, boolCallback);
 BluetoothSDK.delAlarmBy(alarmId, boolCallback);
 BluetoothSDK.delAllAlarms(boolCallback);
@@ -1617,11 +1693,11 @@ BluetoothSDK.stopPushingQjsOnlineWatchface();
 
 ### 14.1 通道选择（与产品配置对齐）
 
-| 通道 | API | 是否在 BluetoothSDK AAR 内 | 前置条件 |
-|------|-----|---------------------------|----------|
+| 通道 | API | 是否在 BluetoothSDK AAR 内 | 前置条件                 |
+|------|-----|---------------------------|----------------------|
 | **A. SPP（经典蓝牙）** | `SppFilesTransferTask.sendMusicFiles` | 是 | 产品支持 SPP；经典蓝牙已配对且已连接 |
-| **B. WL BLE** | `WlMediaTransferManager.transferMusic` | 是 | `isWlProtocol() == true`（通常 `protocolVersion >= 100`） |
-| **C. 思澈 BLE ZIP** | `SifliWatchSDK.syncZipFile(..., type=4, ...)` | **否，需额外 AAR** | 思澈/QJS 机型；BLE 已连接 |
+| **B. WL BLE** | `WlMediaTransferManager.transferMusic` | 是 | 杰理机型；BLE 已连接         |
+| **C. 思澈 BLE ZIP** | `SifliWatchSDK.syncZipFile(..., type=4, ...)` | **否，需额外 AAR** | 思澈/QJS 机型；BLE 已连接    |
 
 推荐决策（与现网一致）：
 
@@ -1629,10 +1705,10 @@ BluetoothSDK.stopPushingQjsOnlineWatchface();
 设备已绑定且 BLE 已连接
         │
         ├─ 产品 hasSPP=true 且经典 BT 已连接 ──► 方案 A：SPP
-        │         └─ 失败且 isWlProtocol() ──► 方案 B：WL BLE
-        │         └─ 失败且非 WL ───────────► 方案 C：思澈 ZIP
+        │         └─ 失败且 杰理 ──► 方案 B：WL BLE
+        │         └─ 失败且非 杰理 ───────────► 方案 C：思澈 ZIP
         │
-        ├─ 无 SPP / BT 未连，且 isWlProtocol() ──► 方案 B：WL BLE
+        ├─ 无 SPP / BT 未连，且杰理 ──► 方案 B：WL BLE
         │
         └─ 其它（思澈老链路）──────────────────► 方案 C：思澈 ZIP
 ```
