@@ -67,6 +67,13 @@ dependencies {
     implementation libs.androidx.localbroadcastmanager
     implementation libs.androidx.viewpager2
     implementation project(':imagepicker')
+    // Video→GIF AARs are under app/libs (VideoEditor + ffmpeg-kit-api + ffmpeg-kit).
+    // Transitive Maven deps that the VideoEditor AAR does not carry:
+    implementation 'androidx.media3:media3-exoplayer:1.2.1'
+    implementation 'androidx.media3:media3-ui:1.2.1'
+    implementation 'com.arthenica:smart-exception-java:0.2.1'
+    implementation 'com.github.bumptech.glide:glide:4.15.0'
+    implementation 'com.github.li-xiaojun:XPopup:2.10.0'
     implementation libs.androidx.exifinterface
     implementation libs.colorpickerview
     implementation libs.gson
