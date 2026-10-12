@@ -37,8 +37,9 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <!-- 自定义表盘选图 / 拍照 -->
+    <!-- 自定义表盘选图 / 拍照 / 视频转 GIF -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.CAMERA" />
 
     <uses-feature

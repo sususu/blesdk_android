@@ -10,15 +10,19 @@ import com.huawo.ai.AiCenter
 import com.huawo.ai.utils.SpUtils
 import com.huawo.nt.sdkdemo.data.repository.BleRepository
 import com.huawo.nt.sdkdemo.util.LocaleHelper
+import com.huawo.watchface.SifliWatchSDK
 import com.huawo.watchface.WatchfaceSDK
 
 /**
  * Process-wide entry point.
  *
- * ## WatchfaceSDK init (required)
+ * ## WatchfaceSDK / SifliWatchSDK init (required)
  * [WatchfaceSDK.init] must run before any custom-watchface push:
  * [com.huawo.watchface.custom.SifliCustomWatchface.syncToWatch] →
  * `WatchfaceSDK.setCustomWatchface(...)`.
+ *
+ * [SifliWatchSDK.init] is required by Watch Face Studio (qjs zip push via
+ * `SifliWatchSDK.syncZipFile`).
  *
  * If skipped, the AAR asserts:
  * `Please call WatchfaceSDK.getIntance().init(Application application) before using any API`.
@@ -49,6 +53,7 @@ class SdkDemoApp : Application() {
         instance = this
         // Watchface file-push manager (SFWatchfaceFilePushManager) lives behind this singleton.
         WatchfaceSDK.getInstance().init(this)
+        SifliWatchSDK.getInstance().init(this)
         bleRepository = BleRepository(this)
 
         // AMap privacy agreement must run before any MapView is created.

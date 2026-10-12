@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 紧凑单行：勾选 + 色块 + 字号(px)。颜色点色块选择，字号为具体像素。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="36dp"
+    android:orientation="horizontal"
+    android:paddingVertical="1dp">
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/checkbox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:minHeight="36dp"
+        android:minWidth="0dp"
+        android:paddingStart="0dp"
+        android:textSize="13sp" />
+
+    <View
+        android:id="@+id/swatch"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/bg_color_swatch"
+        android:contentDescription="@string/wfs_color_hex" />
+
+    <!-- 仅存色值，不展示 hex 文案 -->
+    <TextView
+        android:id="@+id/tv_color"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:text="#FFFFFF"
+        android:visibility="gone" />
+
+    <!-- 关闭态只显示数字；px 放在外侧，避免被 Spinner 箭头裁切 -->
+    <Spinner
+        android:id="@+id/spinner_font_size"
+        android:layout_width="72dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="8dp"
+        android:paddingEnd="4dp"
+        android:spinnerMode="dropdown" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="2dp"
+        android:layout_marginEnd="2dp"
+        android:text="@string/wfs_font_size_px"
+        android:textSize="12sp" />
+</LinearLayout>

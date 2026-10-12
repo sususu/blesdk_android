@@ -13,6 +13,11 @@
 .externalNativeBuild
 .cxx
 local.properties
-/.tmp_aar
+.tmp_aar
+.tmp_aar_check
+.tmp_amap_resolve
+.tmp_qjs
+.tmp_ve_aar
+.tmp_*/
 /app/build
 /app/release

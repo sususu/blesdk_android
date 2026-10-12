@@ -32,6 +32,7 @@ import com.huawo.nt.sdkdemo.ui.scan.ScanConnectFragment
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowDialogFragment
 import com.huawo.nt.sdkdemo.ui.watchface.WatchfaceFragment
 import com.huawo.nt.sdkdemo.ui.watchface.JLWatchfaceFragment
+import com.huawo.nt.sdkdemo.ui.watchface.studio.WatchFaceStudioFragment
 import com.huawo.nt.sdkdemo.util.AppLanguage
 import com.huawo.nt.sdkdemo.util.LocaleHelper
 import kotlinx.coroutines.launch
@@ -104,6 +105,9 @@ class HomeFragment : Fragment() {
         }
         binding.btnWatchface.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(WatchfaceFragment())
+        }
+        binding.btnWatchfaceStudio.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(WatchFaceStudioFragment())
         }
         binding.btnAi.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(AiCenterFragment())
@@ -220,6 +224,7 @@ class HomeFragment : Fragment() {
         binding.btnOta.isEnabled = canFeature
         binding.btnOtaJieli.isEnabled = canFeature
         binding.btnWatchface.isEnabled = canFeature
+        binding.btnWatchfaceStudio.isEnabled = canFeature
         binding.btnAi.isEnabled = canFeature
         binding.btnOfflineMap.isEnabled = canFeature
         binding.btnWatchfaceJieli.isEnabled = canFeature

@@ -1,0 +1,619 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Watch Face Studio 编辑页（紧凑布局）
+  结构：Toolbar → 预览 → 尺寸/名称/背景 → 字体 → 控件行 → 指针色 → 快捷入口 → 同步
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/white"
+        app:title="@string/feature_watchface_studio"
+        app:titleTextColor="@color/white" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="10dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp">
+
+            <!-- 预览标题 + loading -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/wfs_preview"
+                    android:textAppearance="?attr/textAppearanceSubtitle2" />
+
+                <ProgressBar
+                    android:id="@+id/progress_preview"
+                    style="?android:attr/progressBarStyleSmall"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginStart="6dp"
+                    android:contentDescription="@null"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- 预览区：子 View 可能略超出矩形，由 clipToOutline 做圆角裁剪 -->
+            <FrameLayout
+                android:id="@+id/fl_preview"
+                android:layout_width="300dp"
+                android:layout_height="300dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="6dp"
+                android:background="#FF000000"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <ImageView
+                    android:id="@+id/img_bg"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:scaleType="centerCrop" />
+
+                <TextView
+                    android:id="@+id/tv_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="12:00"
+                    android:textColor="@color/white"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/tv_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="03/12"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/tv_week"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="MON"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/tv_step"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical|start"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="12345"
+                    android:textColor="#FFFF5555"
+                    android:textSize="11sp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/tv_distance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical|start"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="1.2"
+                    android:textColor="#FF55AAFF"
+                    android:textSize="11sp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/tv_calorie"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical|end"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="320"
+                    android:textColor="#FFFFAA00"
+                    android:textSize="11sp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/tv_battery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical|start"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="80%"
+                    android:textColor="#FF55FF55"
+                    android:textSize="11sp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/tv_hr"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical|end"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="72"
+                    android:textColor="#FFFF66AA"
+                    android:textSize="11sp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/tv_weather"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical|end"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="25°"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/tv_link_phone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#66FFFFFF"
+                    android:gravity="center"
+                    android:padding="2dp"
+                    android:text="@string/wfs_link_phone"
+                    android:textColor="@color/white"
+                    android:textSize="9sp" />
+
+                <TextView
+                    android:id="@+id/tv_link_notify"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#66FFFFFF"
+                    android:gravity="center"
+                    android:padding="2dp"
+                    android:text="@string/wfs_link_notify"
+                    android:textColor="@color/white"
+                    android:textSize="9sp" />
+
+                <TextView
+                    android:id="@+id/tv_link_activity"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#66FFFFFF"
+                    android:gravity="center"
+                    android:padding="2dp"
+                    android:text="@string/wfs_link_activity"
+                    android:textColor="@color/white"
+                    android:textSize="9sp" />
+
+                <TextView
+                    android:id="@+id/tv_link_weather"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#66FFFFFF"
+                    android:gravity="center"
+                    android:padding="2dp"
+                    android:text="@string/wfs_link_weather"
+                    android:textColor="@color/white"
+                    android:textSize="9sp" />
+
+                <ImageView
+                    android:id="@+id/view_pointer_hour"
+                    android:layout_width="4dp"
+                    android:layout_height="48dp"
+                    android:contentDescription="@null"
+                    android:rotation="-60"
+                    android:scaleType="fitXY" />
+
+                <ImageView
+                    android:id="@+id/view_pointer_minute"
+                    android:layout_width="3dp"
+                    android:layout_height="64dp"
+                    android:contentDescription="@null"
+                    android:rotation="30"
+                    android:scaleType="fitXY" />
+
+                <ImageView
+                    android:id="@+id/view_pointer_second"
+                    android:layout_width="2dp"
+                    android:layout_height="72dp"
+                    android:contentDescription="@null"
+                    android:rotation="120"
+                    android:scaleType="fitXY" />
+
+                <ImageView
+                    android:id="@+id/view_center_dot"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:contentDescription="@null"
+                    android:scaleType="fitXY" />
+            </FrameLayout>
+
+            <!-- 尺寸 + 名称 同一行 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <Spinner
+                    android:id="@+id/spinner_size"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:hint="@string/wfs_name"
+                    app:boxBackgroundMode="outline"
+                    app:boxCollapsedPaddingTop="0dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:text="studio"
+                        android:textSize="13sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <!-- Background: album / camera / video→GIF / clear -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:clipChildren="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_album"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:maxLines="1"
+                    android:minHeight="0dp"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"
+                    android:text="@string/wfs_album"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_camera"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:maxLines="1"
+                    android:minHeight="0dp"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"
+                    android:text="@string/wfs_camera"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_video"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:maxLines="1"
+                    android:minHeight="0dp"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"
+                    android:text="@string/wfs_video"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_clear_bg"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:maxLines="1"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"
+                    android:text="@string/wfs_clear_bg"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- 内置字体选择 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/wfs_font_label"
+                    android:textSize="13sp" />
+
+                <Spinner
+                    android:id="@+id/spinner_font"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:spinnerMode="dropdown" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/wfs_section_widgets"
+                android:textAppearance="?attr/textAppearanceSubtitle2"
+                android:textSize="13sp" />
+
+            <include
+                android:id="@+id/row_date"
+                layout="@layout/include_wfs_widget_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <include
+                android:id="@+id/row_week"
+                layout="@layout/include_wfs_widget_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <include
+                android:id="@+id/row_step"
+                layout="@layout/include_wfs_widget_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <include
+                android:id="@+id/row_distance"
+                layout="@layout/include_wfs_widget_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <include
+                android:id="@+id/row_calorie"
+                layout="@layout/include_wfs_widget_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <include
+                android:id="@+id/row_battery"
+                layout="@layout/include_wfs_widget_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <include
+                android:id="@+id/row_hr"
+                layout="@layout/include_wfs_widget_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <include
+                android:id="@+id/row_weather"
+                layout="@layout/include_wfs_widget_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <!-- 指针：勾选 + 四色块 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:minHeight="36dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cb_pointers"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:checked="true"
+                    android:minHeight="36dp"
+                    android:text="@string/wfs_enable_pointers"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:id="@+id/row_pointer_colors"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:id="@+id/swatch_hour"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:background="@drawable/bg_color_swatch"
+                        android:contentDescription="@string/wfs_hour_color" />
+
+                    <View
+                        android:id="@+id/swatch_minute"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_color_swatch"
+                        android:contentDescription="@string/wfs_minute_color" />
+
+                    <View
+                        android:id="@+id/swatch_second"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_color_swatch"
+                        android:contentDescription="@string/wfs_second_color" />
+
+                    <View
+                        android:id="@+id/swatch_dot"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_color_swatch"
+                        android:contentDescription="@string/wfs_dot_color" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 隐藏字段：存指针色 hex，供逻辑读取 -->
+            <TextView
+                android:id="@+id/et_hour_color"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:text="#00FF00"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/et_minute_color"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:text="#0000FF"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/et_second_color"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:text="#A0FF55"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/et_dot_color"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:text="#FFFFFF"
+                android:visibility="gone" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/wfs_section_links"
+                android:textAppearance="?attr/textAppearanceSubtitle2"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cb_link_phone"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="36dp"
+                    android:text="@string/wfs_link_phone"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cb_link_notify"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="36dp"
+                    android:text="@string/wfs_link_notify"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cb_link_activity"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="36dp"
+                    android:text="@string/wfs_link_activity"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cb_link_weather"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="36dp"
+                    android:text="@string/wfs_link_weather"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_sync"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="10dp"
+                android:text="@string/wfs_sync" />
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:indeterminate="false"
+                android:max="100"
+                android:visibility="gone"
+                app:indicatorColor="?attr/colorPrimary" />
+
+            <TextView
+                android:id="@+id/tv_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textAppearance="?attr/textAppearanceBody2"
+                android:textSize="12sp"
+                tools:text="Ready" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

@@ -55,7 +55,7 @@
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="2"
+        android:layout_weight="1"
         android:fillViewport="false"
         android:overScrollMode="ifContentScrolls">
 
@@ -140,13 +140,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_bind"
                 style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:text="@string/bind_watch" />
@@ -155,7 +156,7 @@
                 android:id="@+id/btn_sync"
                 style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:text="@string/sync_data" />
@@ -179,13 +180,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_unbind"
                 style="@style/Widget.SDKDemo.Button.TextButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:text="@string/unbind_watch" />
@@ -194,7 +196,7 @@
                 android:id="@+id/btn_disconnect"
                 style="@style/Widget.SDKDemo.Button.TextButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:text="@string/disconnect" />
@@ -211,13 +213,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_goals"
                 style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:text="@string/feature_goals" />
@@ -226,7 +229,7 @@
                 android:id="@+id/btn_alarms"
                 style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:text="@string/feature_alarms" />
@@ -244,13 +247,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_music"
                 style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:text="@string/feature_music" />
@@ -259,7 +263,7 @@
                 android:id="@+id/btn_album"
                 style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:text="@string/feature_album" />
@@ -269,13 +273,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_agps"
                 style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:text="@string/feature_agps" />
@@ -284,19 +289,37 @@
                 android:id="@+id/btn_ota"
                 style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:text="@string/feature_ota" />
         </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_watchface"
-            style="@style/Widget.SDKDemo.Button.Outlined"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="@string/feature_watchface" />
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_watchface"
+                style="@style/Widget.SDKDemo.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:text="@string/feature_watchface" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_watchface_studio"
+                style="@style/Widget.SDKDemo.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:text="@string/feature_watchface_studio" />
+        </LinearLayout>
 
         <!-- Title uses @string/feature_ai (same in zh/en). -->
         <com.google.android.material.button.MaterialButton
@@ -318,13 +341,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_ota_jieli"
                 style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:text="@string/feature_ota_jl" />
@@ -333,7 +357,7 @@
                 android:id="@+id/btn_watchface_jieli"
                 style="@style/Widget.SDKDemo.Button.Outlined"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:text="@string/feature_watchface_jl" />
@@ -356,14 +380,16 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="?android:attr/listDivider" />
+        android:background="?android:attr/listDivider"
+        android:visibility="gone" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:minHeight="220dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:visibility="gone">
 
         <TextView
             android:layout_width="match_parent"

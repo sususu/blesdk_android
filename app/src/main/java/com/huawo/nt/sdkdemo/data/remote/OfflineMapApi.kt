@@ -17,12 +17,11 @@ import org.json.JSONObject
  * Calls the native PiMap HTTP APIs directly (same as server [PiMapService]),
  * not the HaWoFit proxy `api/v1/devices/pimap/...`.
  *
+ * - Login: `POST {base}user/login` → cache `userId` + `token`
  * - Auth: `POST {base}auth/getAuthInfo?type=0001&deviceId={uuid}`
  * - Package: `POST {base}optionalMap/generateFile`
  *
  * Headers: `token` + `userId`. Success when response `code == 0`.
- *
- * RSA public key is only needed for password login; this demo uses a pre-issued token.
  */
 object OfflineMapApi {
     private const val TAG = "OfflineMapApi"
@@ -30,16 +29,26 @@ object OfflineMapApi {
     /** Native PiMap host (must end with `/`). */
     const val BASE_URL = "https://map-global.iipii.net/"
 
-    /** RSA public key (password encrypt); unused while [USER_ID]/[TOKEN] are set. */
-    const val RSA_PUBLIC_KEY =
-        "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCntVNj2x3Kw/0EndhE8+zOianIG0TdPtMrAwWPRwHLdNsd02lE4KsmkZW/9Ac1uno54vydj7D6/Bb0UAKJ5LaocX6nZ66DtYVKPS2Vr45F0shSnzJTGInk68EwrdWRWmZuNccVkDfntIKCjcbw5ha1lZ9EG66hBrJEJHR0Ru2/kwIDAQAB"
+    /** Demo account; password is RSA-encrypted ciphertext expected by the server. */
+    private const val LOGIN_PHONE = "919654481080"
+    private const val LOGIN_PWD =
+        "di0RwD38AEQglZEByPNErjdWyMTmN8QK/Z04gMIm09h7HKx/z8z0Zf0mwwmc8pC7tJ/UFPiTxrn7vcuTtn4EUKNaKqAJxj7KtF/NoFDlPvMXNhMBRTVMRLkvA6nzq9EZo6qLeED9/QCQWLMm3uEbWoVHPpuraI9o/6iR/VXCe00="
 
-    const val USER_ID = "1d724a30909e419bbb049940901649e1"
-    const val TOKEN =
-        "8p39z03n0zwgkg6u2ckx5s70sjroqx132fat4z8f5pkyr18sr3trdep4q31f0217bp4mqwkema2huj8djare0t92zmuiil8gepgjjst17nenyx17j0xuzujcl8z4sf20"
+    private const val PREFS = "offline_map_api"
+    private const val KEY_USER_ID = "userId"
+    private const val KEY_TOKEN = "token"
 
+    private const val LOGIN_PATH = "user/login"
     private const val AUTH_PATH = "auth/getAuthInfo"
     private const val GENERATE_PATH = "optionalMap/generateFile"
+
+    @Volatile
+    private var cachedUserId: String? = null
+
+    @Volatile
+    private var cachedToken: String? = null
+
+    private val sessionLock = Any()
 
     fun fetchAuthCode(context: Context, mapUuid: String): String {
         val url =
@@ -50,7 +59,7 @@ object OfflineMapApi {
                 .put("type", "0001")
                 .put("deviceId", mapUuid)
                 .toString()
-        val raw = httpPostJson(url, body)
+        val raw = httpPostJson(context, url, body)
         Log.i(TAG, "getAuthInfo response=$raw")
         val data = requireSuccessData(raw, "getAuthInfo")
         val code = data.optString("authCode").orEmpty()
@@ -84,7 +93,7 @@ object OfflineMapApi {
                 put("locationLon", centerLon)
             }
         Log.i(TAG, "generateFile params=$body")
-        val raw = httpPostJson(BASE_URL + GENERATE_PATH, body.toString())
+        val raw = httpPostJson(context, BASE_URL + GENERATE_PATH, body.toString())
         Log.i(TAG, "generateFile response=$raw")
         val data = requireSuccessData(raw, "generateFile")
         val url = data.optString("downloadUrl").orEmpty()
@@ -167,10 +176,66 @@ object OfflineMapApi {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
+    /** Clears cached login session (memory + disk). */
+    fun clearSession(context: Context) {
+        synchronized(sessionLock) {
+            cachedUserId = null
+            cachedToken = null
+            prefs(context).edit().clear().apply()
+        }
+    }
+
+    private fun ensureSession(context: Context): Pair<String, String> {
+        synchronized(sessionLock) {
+            val memUser = cachedUserId
+            val memToken = cachedToken
+            if (!memUser.isNullOrBlank() && !memToken.isNullOrBlank()) {
+                return memUser to memToken
+            }
+            val prefs = prefs(context)
+            val storedUser = prefs.getString(KEY_USER_ID, null).orEmpty()
+            val storedToken = prefs.getString(KEY_TOKEN, null).orEmpty()
+            if (storedUser.isNotBlank() && storedToken.isNotBlank()) {
+                cachedUserId = storedUser
+                cachedToken = storedToken
+                Log.i(TAG, "reuse cached session userId=$storedUser")
+                return storedUser to storedToken
+            }
+            return loginAndCache(context)
+        }
+    }
+
+    private fun loginAndCache(context: Context): Pair<String, String> {
+        val body =
+            JSONObject()
+                .put("phone", LOGIN_PHONE)
+                .put("pwd", LOGIN_PWD)
+                .toString()
+        val raw = httpPostJsonRaw(BASE_URL + LOGIN_PATH, body, userId = null, token = null)
+        Log.i(TAG, "login response=$raw")
+        val data = requireSuccessData(raw, "login")
+        val userId = data.optString("userId").orEmpty()
+        val token = data.optString("token").orEmpty()
+        if (userId.isBlank() || token.isBlank()) {
+            throw IllegalStateException("login userId/token empty")
+        }
+        cachedUserId = userId
+        cachedToken = token
+        prefs(context).edit()
+            .putString(KEY_USER_ID, userId)
+            .putString(KEY_TOKEN, token)
+            .apply()
+        Log.i(TAG, "login ok, cached userId=$userId")
+        return userId to token
+    }
+
+    private fun prefs(context: Context) =
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
     private fun requireSuccessData(raw: String, api: String): JSONObject {
         val root = JSONObject(raw)
-        val code = root.optInt("code", -1)
-        if (code != 0) {
+        if (!isSuccessCode(root)) {
+            val code = root.opt("code")
             val msg = root.optString("msg").orEmpty().ifBlank { raw }
             throw IllegalStateException("$api failed code=$code msg=$msg")
         }
@@ -178,15 +243,34 @@ object OfflineMapApi {
             ?: throw IllegalStateException("$api data null")
     }
 
-    private fun httpPostJson(url: String, jsonBody: String): String {
+    /** Server may return `code` as int `0` or string `"0"`. */
+    private fun isSuccessCode(root: JSONObject): Boolean {
+        val code = root.opt("code") ?: return false
+        return when (code) {
+            is Number -> code.toInt() == 0
+            else -> code.toString() == "0"
+        }
+    }
+
+    private fun httpPostJson(context: Context, url: String, jsonBody: String): String {
+        val (userId, token) = ensureSession(context)
+        return httpPostJsonRaw(url, jsonBody, userId = userId, token = token)
+    }
+
+    private fun httpPostJsonRaw(
+        url: String,
+        jsonBody: String,
+        userId: String?,
+        token: String?,
+    ): String {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 30_000
             readTimeout = 60_000
             requestMethod = "POST"
             doOutput = true
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            setRequestProperty("token", TOKEN)
-            setRequestProperty("userId", USER_ID)
+            if (!token.isNullOrBlank()) setRequestProperty("token", token)
+            if (!userId.isNullOrBlank()) setRequestProperty("userId", userId)
         }
         try {
             conn.outputStream.use { it.write(jsonBody.toByteArray(Charsets.UTF_8)) }
