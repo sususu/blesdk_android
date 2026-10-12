@@ -61,12 +61,11 @@ import java.util.Locale
  * - Otherwise → App path (`speakOnWatch` → SCO + `VoiceRecorderService`; else phone mic)
  *
  * This demo exposes **Auto / Watch / Phone mic / Watch via SCO** so both product paths can be tested.
- * **Auto** mirrors HaWoFit: `JIELI || firmware.recordFromDevice` → watch; else phone path + [AiCenter.startRecordService].
+ * Recording **Auto** mirrors HaWoFit: `JIELI || firmware.recordFromDevice` → watch; else phone path + [AiCenter.startRecordService].
  *
  * ## Platform
  * [AiDeviceInfo.setPlatformType] selects install/record handlers (SIFLI QJS vs JieLi WL, etc.).
- * Auto uses `protocolVersion >= 100` → [HwPlatformType.JIELI], else [HwPlatformType.SIFLI]
- * (same idea as deprecated `setProtocolVersion`).
+ * The platform spinner is explicit; the selected value is applied only after tapping Apply.
  *
  * ## Typical watch-driven flow
  * ```
@@ -102,8 +101,6 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
      */
     private var firmwareRecordFromDevice: Boolean? = null
 
-    /** Last [DeviceInfo.getProtocolVersion]; used to infer JIELI vs SIFLI when platform = Auto. */
-    private var firmwareProtocolVersion: Int? = null
 
     private val sizePresets =
         listOf(
@@ -247,7 +244,7 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
                 android.R.layout.simple_spinner_dropdown_item,
                 platformChoices.map { getString(it.labelRes) },
             )
-        binding.spinnerPlatform.setSelection(PlatformChoice.AUTO.ordinal)
+        binding.spinnerPlatform.setSelection(PlatformChoice.SIFLI.ordinal)
     }
 
     private fun applyPreset(preset: SizePreset) {
@@ -274,7 +271,7 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         recordModes.getOrElse(binding.spinnerRecordMode.selectedItemPosition) { RecordMode.AUTO }
 
     private fun selectedPlatformChoice(): PlatformChoice =
-        platformChoices.getOrElse(binding.spinnerPlatform.selectedItemPosition) { PlatformChoice.AUTO }
+        platformChoices.getOrElse(binding.spinnerPlatform.selectedItemPosition) { PlatformChoice.SIFLI }
 
     // -------------------------------------------------------------------------
     // Firmware DeviceInfo → record capability + platform hint
@@ -291,20 +288,13 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
                     mainHandler.post {
                         if (_binding == null) return@post
                         firmwareRecordFromDevice = deviceInfo.isRecordFromDevice
-                        firmwareProtocolVersion = deviceInfo.protocolVersion
-                        val inferred = inferPlatform(deviceInfo.protocolVersion)
                         binding.tvFirmwareRecordHint.text =
                             getString(
                                 R.string.ai_wf_fw_record_hint,
                                 deviceInfo.isRecordFromDevice.toString(),
-                                deviceInfo.protocolVersion,
-                                inferred.name,
                             )
-                        appendLine(
-                            "DeviceInfo recordFromDevice=${deviceInfo.isRecordFromDevice} " +
-                                "protocol=${deviceInfo.protocolVersion} inferredPlatform=$inferred",
-                        )
-                        // Re-apply Auto path once firmware flags are known.
+                        appendLine("DeviceInfo recordFromDevice=${deviceInfo.isRecordFromDevice}")
+                        // Re-apply recording Auto once firmware capability is known; never change the selected platform.
                         if (aiStarted && selectedRecordMode() == RecordMode.AUTO) {
                             applyRecordingPath(logResult = true)
                         }
@@ -350,16 +340,9 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
     // Resolve platform + recordFromDevice (HaWoFit-compatible)
     // -------------------------------------------------------------------------
 
-    /**
-     * Infer platform from protocol version (AI SDK historically used ≥100 for WL/JieLi).
-     * Prefer an explicit spinner choice in demos when the product is known.
-     */
-    private fun inferPlatform(protocolVersion: Int?): HwPlatformType =
-        if ((protocolVersion ?: 0) >= 100) HwPlatformType.JIELI else HwPlatformType.SIFLI
 
     private fun resolvePlatform(): HwPlatformType =
         when (selectedPlatformChoice()) {
-            PlatformChoice.AUTO -> inferPlatform(firmwareProtocolVersion)
             PlatformChoice.SIFLI -> HwPlatformType.SIFLI
             PlatformChoice.JIELI -> HwPlatformType.JIELI
             PlatformChoice.REALTEK -> HwPlatformType.REALTEK
@@ -553,6 +536,13 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         applyRecordingPath(logResult = true)
         val info = buildDeviceInfo(persist = true)
         AiCenter.getInstance().setDeviceInfo(info)
+        binding.tvFirmwareRecordHint.text =
+            getString(
+                R.string.ai_wf_applied_path,
+                AiCenter.getInstance().isRecordFromDevice.toString(),
+                resolvePlatform().name,
+                speakOnWatchForDebugRecord().toString(),
+            )
         appendLine(getString(R.string.ai_wf_device_info, info.toString()))
         Toast.makeText(requireContext(), R.string.ai_wf_info_applied, Toast.LENGTH_SHORT).show()
     }
@@ -917,7 +907,6 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
     }
 
     private enum class PlatformChoice(val labelRes: Int) {
-        AUTO(R.string.ai_wf_platform_auto),
         SIFLI(R.string.ai_wf_platform_sifli),
         JIELI(R.string.ai_wf_platform_jieli),
         REALTEK(R.string.ai_wf_platform_realtek),
