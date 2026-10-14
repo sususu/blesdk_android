@@ -90,6 +90,7 @@
     <string name="reason_reconnect">断线重连</string>
     <string name="error_no_device_to_sync">没有可同步的设备，请先连接并绑定</string>
     <string name="sync_summary">活动 %1$d 条（步数合计 %2$d）\n心率 %3$d 条\n睡眠 %4$d 条\nHRV/血氧/压力 %5$d 条</string>
+    <string name="sync_summary_jl">活动 %1$d 条（步数合计 %2$d）\n心率 %3$d 条\n睡眠 %4$d 条\nHRV/血氧/压力 %5$d 条\n皮肤温度 %6$d 条\n呼吸频率 %7$d 条</string>
 
     <string name="bind_subtitle">按 SDK「§6 配对与绑定」逐步调用（当前：Android）</string>
     <string name="unbind_subtitle">按 SDK 解绑流程逐步调用（当前：Android）</string>
@@ -582,7 +583,7 @@
     <string name="status_sync_done_jl">杰理同步完成</string>
     <string name="status_sync_failed_jl">杰理同步失败: %1$s</string>
     <string name="log_sync_jl_start">杰理同步开始: mac=%1$s</string>
-    <string name="log_sync_jl_route">杰理同步路径: 步数、心率、睡眠、HRV、血氧、压力 V2</string>
+    <string name="log_sync_jl_route">杰理同步路径: 步数、心率、睡眠、HRV、血氧、压力、皮肤温度、呼吸频率</string>
     <string name="log_sync_jl_callback">杰理回调: %1$s, 条数=%2$d</string>
     <string name="log_sync_jl_delete_start">杰理删除开始: %1$s</string>
     <string name="log_sync_jl_delete_done">杰理删除成功: %1$s</string>

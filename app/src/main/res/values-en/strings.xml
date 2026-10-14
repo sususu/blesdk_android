@@ -90,6 +90,7 @@
     <string name="reason_reconnect">auto reconnect</string>
     <string name="error_no_device_to_sync">No device to sync. Connect and bind first</string>
     <string name="sync_summary">Activities %1$d (steps %2$d)\nHeart rates %3$d\nSleeps %4$d\nHRV / SpO2 / stress %5$d</string>
+    <string name="sync_summary_jl">Activities %1$d (steps %2$d)\nHeart rates %3$d\nSleeps %4$d\nHRV / SpO2 / stress %5$d\nSkin temperature %6$d\nRespiratory rate %7$d</string>
 
     <string name="bind_subtitle">Follow SDK §6 pairing &amp; binding steps (Android)</string>
     <string name="unbind_subtitle">Follow SDK unbind steps (Android)</string>
@@ -582,7 +583,7 @@
     <string name="status_sync_done_jl">JieLi sync completed</string>
     <string name="status_sync_failed_jl">JieLi sync failed: %1$s</string>
     <string name="log_sync_jl_start">JieLi sync start: mac=%1$s</string>
-    <string name="log_sync_jl_route">JieLi sync route: step, heart rate, sleep, HRV, blood oxygen, stress V2</string>
+    <string name="log_sync_jl_route">JieLi sync route: step, heart rate, sleep, HRV, blood oxygen, stress, skin temperature, respiratory rate</string>
     <string name="log_sync_jl_callback">JieLi callback: %1$s, count=%2$d</string>
     <string name="log_sync_jl_delete_start">JieLi delete start: %1$s</string>
     <string name="log_sync_jl_delete_done">JieLi delete succeeded: %1$s</string>

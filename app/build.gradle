@@ -52,6 +52,9 @@ dependencies {
     // Local vendor AARs under app/libs (AI needs BmpConvert + jl_pack + QW + ai)
     implementation fileTree(dir: 'libs', include: ['*.aar'])
 
+    // Local AI AARs do not carry Maven dependencies; OmniAgent pulls its API, core and Opus runtime.
+    implementation 'com.adf:oa-oas:2.5.0'
+
     implementation libs.androidx.appcompat
     implementation libs.androidx.core.ktx
     implementation libs.material

@@ -18,6 +18,11 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // OmniAgent artifacts used by the local AI AAR; keep this repository scoped to the vendor group.
+        maven {
+            url = uri("https://maven.hanshuang.ltd/repository/maven-releases/")
+            content { includeGroup("com.adf") }
+        }
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }

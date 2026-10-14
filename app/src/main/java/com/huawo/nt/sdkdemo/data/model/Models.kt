@@ -157,6 +157,20 @@ data class BleHrv(
     val spo2: Int = 0,
 )
 
+/** JieLi history: time is milliseconds and temperature stays in floating-point Celsius. */
+data class BleSkinTemperature(
+    val index: Int = 0,
+    val timeMs: Long = 0,
+    val celsius: Float = 0f,
+)
+
+/** JieLi history: time is milliseconds and rate is breaths per minute. */
+data class BleBreaths(
+    val index: Int = 0,
+    val timeMs: Long = 0,
+    val rate: Int = 0,
+)
+
 data class BleSleep(
     val index: Int = 0,
     val timeMs: Long = 0,

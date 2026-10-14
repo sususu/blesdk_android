@@ -402,17 +402,26 @@ class HomeViewModel(
                 val stresses = repository.getStressV2()
                 dumpModels("JieLi Stress", stresses)
                 appendLog(str(R.string.log_sync_jl_callback, "STRESS", stresses.size))
+                // Keep the new history requests serial and preserve the SDK's time/temperature units.
+                val skinTemperatures = repository.getSkinTemperature()
+                dumpModels("JieLi SkinTemperature", skinTemperatures)
+                appendLog(str(R.string.log_sync_jl_callback, "SKIN_TEMPERATURE", skinTemperatures.size))
+                val breaths = repository.getBreaths()
+                dumpModels("JieLi Breaths", breaths)
+                appendLog(str(R.string.log_sync_jl_callback, "BREATHS", breaths.size))
                 val totalSteps = activities.sumOf { it.step }
                 // The three independent health APIs can describe the same timestamp.
                 val healthCount = (hrvs + spo2s + stresses).map { it.timeMs }.filter { it > 0 }.toSet().size
                 val countSummary =
                     str(
-                        R.string.sync_summary,
+                        R.string.sync_summary_jl,
                         activities.size,
                         totalSteps,
                         heartrates.size,
                         sleeps.size,
                         healthCount,
+                        skinTemperatures.size,
+                        breaths.size,
                     )
                 if (activities.isNotEmpty()) {
                     appendLog(str(R.string.log_sync_jl_delete_start, "STEP"))
@@ -457,6 +466,23 @@ class HomeViewModel(
                     runCatching { repository.deleteStress() }
                         .onSuccess { appendLog(str(R.string.log_sync_jl_delete_done, "STRESS")) }
                         .onFailure { appendLog(str(R.string.log_sync_jl_delete_failed, "STRESS", it.message.orEmpty())) }
+                }
+                // Match the existing sync cleanup: only delete a type after receiving non-empty data.
+                if (skinTemperatures.isNotEmpty()) {
+                    appendLog(str(R.string.log_sync_jl_delete_start, "SKIN_TEMPERATURE"))
+                    runCatching { repository.deleteSkinTemperature() }
+                        .onSuccess { appendLog(str(R.string.log_sync_jl_delete_done, "SKIN_TEMPERATURE")) }
+                        .onFailure {
+                            appendLog(
+                                str(R.string.log_sync_jl_delete_failed, "SKIN_TEMPERATURE", it.message.orEmpty()),
+                            )
+                        }
+                }
+                if (breaths.isNotEmpty()) {
+                    appendLog(str(R.string.log_sync_jl_delete_start, "BREATHS"))
+                    runCatching { repository.deleteBreaths() }
+                        .onSuccess { appendLog(str(R.string.log_sync_jl_delete_done, "BREATHS")) }
+                        .onFailure { appendLog(str(R.string.log_sync_jl_delete_failed, "BREATHS", it.message.orEmpty())) }
                 }
                 _uiState.update {
                     it.copy(

@@ -6,10 +6,12 @@ import android.os.Looper
 import android.util.Log
 import com.huawo.nt.sdkdemo.data.local.BoundDeviceStore
 import com.huawo.nt.sdkdemo.data.model.BleActivity
+import com.huawo.nt.sdkdemo.data.model.BleBreaths
 import com.huawo.nt.sdkdemo.data.model.BleDevice
 import com.huawo.nt.sdkdemo.data.model.BleDeviceInfo
 import com.huawo.nt.sdkdemo.data.model.BleHeartrate
 import com.huawo.nt.sdkdemo.data.model.BleHrv
+import com.huawo.nt.sdkdemo.data.model.BleSkinTemperature
 import com.huawo.nt.sdkdemo.data.model.BleSleep
 import com.huawo.nt.sdkdemo.data.model.BoundDeviceRecord
 import com.huawo.nt.sdkdemo.data.model.ConnectionEvent
@@ -43,6 +45,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.ActivityNumCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.AlarmsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.AvailableStorageCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.BoolValueCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.BreathsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.ConnectionStateCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.ContactsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.DeviceInfoCallback
@@ -53,6 +56,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.HeartratesCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.HrvsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntArrayCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SedentaryReminderCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.SkinTemperatureCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SleepsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SocialAppSwitchesCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.Spo2Callback
@@ -84,6 +88,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ops.GetActivityNum
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.GetSports
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.ActivityNum
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Alarm
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Breaths
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Contact
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.DeviceInfo
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.DrinkWaterReminder
@@ -96,6 +101,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Heartrate
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Hrv
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.RepeatPeriodUnit
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.SedentaryReminder
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.SkinTemperature
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Sleep
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.SocialAppSwitch
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.SocialMessage
@@ -696,6 +702,62 @@ class BleRepository(private val application: Application) {
             )
         }
 
+    /** Fetch JieLi skin-temperature history; the SDK already supplies milliseconds and Celsius. */
+    suspend fun getSkinTemperature(): List<BleSkinTemperature> =
+        suspendCancellableCoroutine { cont ->
+            Log.i(TAG, "getSkinTemperature enter")
+            BluetoothSDK.getSkinTemperature(
+                object : SkinTemperatureCallback() {
+                    override fun onSuccess(data: List<SkinTemperature>?) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                val rows = data?.map { BleSkinTemperature(it.index, it.time, it.celsius) }.orEmpty()
+                                Log.i(TAG, "getSkinTemperature success count=${rows.size}")
+                                cont.resume(rows)
+                            }
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        Log.e(TAG, "getSkinTemperature failed code=$code")
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(SdkException(code, "getSkinTemperature failed"))
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    /** Fetch JieLi respiratory-rate history through its own request, not a batch request. */
+    suspend fun getBreaths(): List<BleBreaths> =
+        suspendCancellableCoroutine { cont ->
+            Log.i(TAG, "getBreaths enter")
+            BluetoothSDK.getBreaths(
+                object : BreathsCallback() {
+                    override fun onSuccess(data: List<Breaths>?) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                val rows = data?.map { BleBreaths(it.index, it.time, it.rate) }.orEmpty()
+                                Log.i(TAG, "getBreaths success count=${rows.size}")
+                                cont.resume(rows)
+                            }
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        Log.e(TAG, "getBreaths failed code=$code")
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(SdkException(code, "getBreaths failed"))
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
     suspend fun deleteSports() = awaitVoid("deleteSports failed") { BluetoothSDK.delSports(it) }
 
     suspend fun deleteHeartrates() =
@@ -710,6 +772,11 @@ class BleRepository(private val application: Application) {
     suspend fun deleteStress() = awaitVoid("deleteStress failed") { BluetoothSDK.delStress(it) }
 
     suspend fun deleteHrvsV2() = awaitVoid("deleteHrvsV2 failed") { BluetoothSDK.delHrvV2(it) }
+
+    suspend fun deleteSkinTemperature() =
+        awaitVoid("deleteSkinTemperature failed") { BluetoothSDK.delSkinTemperature(it) }
+
+    suspend fun deleteBreaths() = awaitVoid("deleteBreaths failed") { BluetoothSDK.delBreaths(it) }
 
     // region §8 Goals
 
