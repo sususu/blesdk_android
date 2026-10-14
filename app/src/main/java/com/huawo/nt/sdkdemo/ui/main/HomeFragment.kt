@@ -19,6 +19,7 @@ import com.huawo.nt.sdkdemo.ui.ViewModelFactory
 import com.huawo.nt.sdkdemo.ui.bind.BindFlowDialogFragment
 import com.huawo.nt.sdkdemo.ui.common.LogAdapter
 import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateFragment
+import com.huawo.nt.sdkdemo.ui.features.AiAnalysisFragment
 import com.huawo.nt.sdkdemo.ui.features.AiCenterFragment
 import com.huawo.nt.sdkdemo.ui.features.AlarmsFragment
 import com.huawo.nt.sdkdemo.ui.features.AlbumTransferFragment
@@ -123,6 +124,9 @@ class HomeFragment : Fragment() {
         }
         binding.btnAi.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(AiCenterFragment())
+        }
+        binding.btnAiAnalysis.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(AiAnalysisFragment())
         }
         binding.btnOfflineMap.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(OfflineMapDownloadFragment())
@@ -241,6 +245,7 @@ class HomeFragment : Fragment() {
         binding.btnWatchface.isEnabled = canFeature
         binding.btnWatchfaceStudio.isEnabled = canFeature
         binding.btnAi.isEnabled = canFeature
+        binding.btnAiAnalysis.isEnabled = canFeature
         binding.btnOfflineMap.isEnabled = canFeature
         binding.btnWatchfaceJieli.isEnabled = canFeature
 

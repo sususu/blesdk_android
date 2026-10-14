@@ -7,6 +7,7 @@ import com.huawo.nt.sdkdemo.SdkDemoApp
 import com.huawo.nt.sdkdemo.data.repository.BleRepository
 import com.huawo.nt.sdkdemo.ui.bind.BindFlowViewModel
 import com.huawo.nt.sdkdemo.ui.features.AlarmsViewModel
+import com.huawo.nt.sdkdemo.ui.features.AiAnalysisViewModel
 import com.huawo.nt.sdkdemo.ui.features.AlbumTransferViewModel
 import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateViewModel
 import com.huawo.nt.sdkdemo.ui.features.AutoMonitoringViewModel
@@ -43,6 +44,8 @@ class ViewModelFactory(
                 GoalsViewModel(application, repository) as T
             modelClass.isAssignableFrom(AlarmsViewModel::class.java) ->
                 AlarmsViewModel(application, repository) as T
+            modelClass.isAssignableFrom(AiAnalysisViewModel::class.java) ->
+                AiAnalysisViewModel(application) as T
             modelClass.isAssignableFrom(AutoMonitoringViewModel::class.java) ->
                 AutoMonitoringViewModel(application, repository) as T
             modelClass.isAssignableFrom(ReminderListenerViewModel::class.java) ->
