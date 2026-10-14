@@ -236,6 +236,30 @@
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_auto_monitoring"
+            style="@style/Widget.SDKDemo.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/feature_auto_monitoring" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_reminder_listener_jl"
+            style="@style/Widget.SDKDemo.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/feature_reminder_listener_jl" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_manual_measure_jl"
+            style="@style/Widget.SDKDemo.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/feature_manual_measure_jl" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_notify"
             style="@style/Widget.SDKDemo.Button.Outlined"
             android:layout_width="match_parent"

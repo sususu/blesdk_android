@@ -9,11 +9,14 @@ import com.huawo.nt.sdkdemo.ui.bind.BindFlowViewModel
 import com.huawo.nt.sdkdemo.ui.features.AlarmsViewModel
 import com.huawo.nt.sdkdemo.ui.features.AlbumTransferViewModel
 import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateViewModel
+import com.huawo.nt.sdkdemo.ui.features.AutoMonitoringViewModel
 import com.huawo.nt.sdkdemo.ui.features.GoalsViewModel
 import com.huawo.nt.sdkdemo.ui.features.JLOtaUpgradeViewModel
+import com.huawo.nt.sdkdemo.ui.features.ManualMeasurementViewModel
 import com.huawo.nt.sdkdemo.ui.features.MusicTransferViewModel
 import com.huawo.nt.sdkdemo.ui.features.NotifyViewModel
 import com.huawo.nt.sdkdemo.ui.features.OtaUpgradeViewModel
+import com.huawo.nt.sdkdemo.ui.features.ReminderListenerViewModel
 import com.huawo.nt.sdkdemo.ui.features.offlinemap.OfflineMapDownloadViewModel
 import com.huawo.nt.sdkdemo.ui.main.HomeViewModel
 import com.huawo.nt.sdkdemo.ui.scan.ScanViewModel
@@ -40,6 +43,12 @@ class ViewModelFactory(
                 GoalsViewModel(application, repository) as T
             modelClass.isAssignableFrom(AlarmsViewModel::class.java) ->
                 AlarmsViewModel(application, repository) as T
+            modelClass.isAssignableFrom(AutoMonitoringViewModel::class.java) ->
+                AutoMonitoringViewModel(application, repository) as T
+            modelClass.isAssignableFrom(ReminderListenerViewModel::class.java) ->
+                ReminderListenerViewModel(application, repository) as T
+            modelClass.isAssignableFrom(ManualMeasurementViewModel::class.java) ->
+                ManualMeasurementViewModel(application, repository) as T
             modelClass.isAssignableFrom(NotifyViewModel::class.java) ->
                 NotifyViewModel(application, repository) as T
             modelClass.isAssignableFrom(MusicTransferViewModel::class.java) ->

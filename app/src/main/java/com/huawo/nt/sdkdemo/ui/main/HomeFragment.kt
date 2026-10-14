@@ -22,11 +22,14 @@ import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateFragment
 import com.huawo.nt.sdkdemo.ui.features.AiCenterFragment
 import com.huawo.nt.sdkdemo.ui.features.AlarmsFragment
 import com.huawo.nt.sdkdemo.ui.features.AlbumTransferFragment
+import com.huawo.nt.sdkdemo.ui.features.AutoMonitoringFragment
 import com.huawo.nt.sdkdemo.ui.features.GoalsFragment
 import com.huawo.nt.sdkdemo.ui.features.JLOtaUpgradeFragment
+import com.huawo.nt.sdkdemo.ui.features.ManualMeasurementFragment
 import com.huawo.nt.sdkdemo.ui.features.MusicTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.NotifyFragment
 import com.huawo.nt.sdkdemo.ui.features.OtaUpgradeFragment
+import com.huawo.nt.sdkdemo.ui.features.ReminderListenerFragment
 import com.huawo.nt.sdkdemo.ui.features.offlinemap.OfflineMapDownloadFragment
 import com.huawo.nt.sdkdemo.ui.scan.ScanConnectFragment
 import com.huawo.nt.sdkdemo.ui.unbind.UnbindFlowDialogFragment
@@ -84,6 +87,15 @@ class HomeFragment : Fragment() {
         }
         binding.btnAlarms.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(AlarmsFragment())
+        }
+        binding.btnAutoMonitoring.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(AutoMonitoringFragment())
+        }
+        binding.btnReminderListenerJl.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(ReminderListenerFragment())
+        }
+        binding.btnManualMeasureJl.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(ManualMeasurementFragment())
         }
         binding.btnNotify.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(NotifyFragment())
@@ -217,6 +229,9 @@ class HomeFragment : Fragment() {
         binding.btnDisconnect.isEnabled = !state.busy && device != null
         binding.btnGoals.isEnabled = canFeature
         binding.btnAlarms.isEnabled = canFeature
+        binding.btnAutoMonitoring.isEnabled = canFeature
+        binding.btnReminderListenerJl.isEnabled = canFeature
+        binding.btnManualMeasureJl.isEnabled = canFeature
         binding.btnNotify.isEnabled = canFeature
         binding.btnMusic.isEnabled = canFeature
         binding.btnAlbum.isEnabled = canFeature

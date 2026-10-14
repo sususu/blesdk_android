@@ -160,6 +160,39 @@ class AlarmsViewModel(
         str(R.string.reminders_wash_ok)
     }
 
+    fun getLowBatteryReminder() = runAction(R.string.reminders_getting) {
+        val on = repository.getLowBatteryReminderSwitch()
+        str(R.string.reminders_low_battery_value, str(if (on) R.string.reminders_on else R.string.reminders_off))
+    }
+
+    fun setLowBatteryReminder(on: Boolean) = runAction(R.string.reminders_setting) {
+        repository.setLowBatteryReminderSwitch(on)
+        str(R.string.reminders_low_battery_set_ok, str(if (on) R.string.reminders_on else R.string.reminders_off))
+    }
+
+    fun getVibration() = runAction(R.string.reminders_getting) {
+        val settings = repository.getVibrationSettings()
+        formatVibration(settings.isOn, settings.intensity)
+    }
+
+    fun setVibration(on: Boolean, intensity: Int) = runAction(R.string.reminders_setting) {
+        repository.setVibrationSettings(on, intensity)
+        // Report the acknowledged sample parameters; readback remains an independent button.
+        str(R.string.reminders_vibration_set_ok, formatVibration(on, intensity))
+    }
+
+    private fun formatVibration(on: Boolean, intensity: Int): String {
+        // A disabled vibration switch must not present a cached intensity as an active level.
+        if (!on) return str(R.string.reminders_vibration_disabled)
+        val level = when (intensity) {
+            33 -> R.string.reminders_level_weak
+            66 -> R.string.reminders_level_medium
+            99 -> R.string.reminders_level_strong
+            else -> R.string.reminders_level_unknown
+        }
+        return str(R.string.reminders_vibration_value, str(level), intensity)
+    }
+
     private fun runAction(statusRes: Int, block: suspend () -> String) {
         if (_uiState.value.busy) return
         viewModelScope.launch {

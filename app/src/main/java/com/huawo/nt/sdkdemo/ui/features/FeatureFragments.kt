@@ -106,6 +106,13 @@ class AlarmsFragment : BaseFeatureFragment() {
         addActionButton(container, R.string.reminders_set_sedentary) { viewModel.setSedentary() }
         addActionButton(container, R.string.reminders_set_drink) { viewModel.setDrinkWater() }
         addActionButton(container, R.string.reminders_set_wash) { viewModel.setWashHand() }
+        addActionButton(container, R.string.reminders_low_battery_get) { viewModel.getLowBatteryReminder() }
+        addActionButton(container, R.string.reminders_low_battery_on) { viewModel.setLowBatteryReminder(true) }
+        addActionButton(container, R.string.reminders_low_battery_off) { viewModel.setLowBatteryReminder(false) }
+        addActionButton(container, R.string.reminders_vibration_get) { viewModel.getVibration() }
+        // Fixed SDK samples: both off and enabled medium use intensity 66.
+        addActionButton(container, R.string.reminders_vibration_off) { viewModel.setVibration(false, 66) }
+        addActionButton(container, R.string.reminders_vibration_medium) { viewModel.setVibration(true, 66) }
     }
 }
 

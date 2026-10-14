@@ -50,11 +50,16 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.ConnectionStateCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.ContactsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.DeviceInfoCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.DrinkWaterReminderCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.FloatValueWithTimeCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.GoalCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.GpsStatusCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.HeartratesCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.HrvsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntArrayCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntValueWithTimeCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.MonitorStateChangedCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.NotProperlyWornCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.ReminderNotifyCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SedentaryReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SkinTemperatureCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SleepsCallback
@@ -66,6 +71,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.StringListCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntValueCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.BoolCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.UpgradeStatusCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.VibrationSettingsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.MapTheme
 import android.location.Location
 import com.huawo.nt.sdkdemo.data.model.OfflineMapTransferCallback
@@ -90,6 +96,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.ActivityNum
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Alarm
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Breaths
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Contact
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.DataType
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.DeviceInfo
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.DrinkWaterReminder
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.EmergencyContact
@@ -112,6 +119,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Stress
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.TimePoint
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Unit as MeasureUnit
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.UserInfo
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.VibrationSettings
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.WashHandReminder
 import com.huawo.sdk.bluetoothsdk.interfaces.utils.LanguageUtils
 import com.huawo.sdk.bluetoothsdk.spp.SppFilesTransferTask
@@ -813,7 +821,83 @@ class BleRepository(private val application: Application) {
 
     // endregion
 
+    // region Manual measurement
+
+    // Keep asynchronous command ACKs separate from device values and the device-stop notification.
+    fun startMonitoring(type: DataType, callback: BoolCallback) {
+        require(type != DataType.Unkown) { "Unsupported measurement type=$type" }
+        BluetoothSDK.startMonitoring(type, callback)
+    }
+
+    fun stopMonitoring(type: DataType, callback: BoolCallback) {
+        require(type != DataType.Unkown) { "Unsupported measurement type=$type" }
+        BluetoothSDK.stopMonitoring(type, callback)
+    }
+
+    fun addRealtimeIntWithTimeListener(callback: IntValueWithTimeCallback) = BluetoothSDK.addRealtimeIntWithTimeListener(callback)
+    fun removeRealtimeIntWithTimeListener(callback: IntValueWithTimeCallback) = BluetoothSDK.removeRealtimeIntWithTimeListener(callback)
+    fun addRealtimeFloatWithTimeListener(callback: FloatValueWithTimeCallback) = BluetoothSDK.addRealtimeFloatWithTimeListener(callback)
+    fun removeRealtimeFloatWithTimeListener(callback: FloatValueWithTimeCallback) = BluetoothSDK.removeRealtimeFloatWithTimeListener(callback)
+    fun addMonitorStateChangedCallback(callback: MonitorStateChangedCallback) = BluetoothSDK.addMonitorStateChangedCallback(callback)
+    fun removeMonitorStateChangedCallback(callback: MonitorStateChangedCallback) = BluetoothSDK.removeMonitorStateChangedCallback(callback)
+    fun addNotProperlyWornCallback(callback: NotProperlyWornCallback) = BluetoothSDK.addNotProperlyWornCallback(callback)
+    fun removeNotProperlyWornCallback(callback: NotProperlyWornCallback) = BluetoothSDK.removeNotProperlyWornCallback(callback)
+
+    // endregion
+
+    // region Automatic monitoring
+
+    // Automatic monitoring calls are independent; SDK callbacks carry device errors to the page.
+    suspend fun getHeartrateMonitorInterval(): Int =
+        awaitIntValue("getHeartrateMonitorInterval failed") { BluetoothSDK.getHeartrateMonitorInterval(it) }
+
+    suspend fun setHeartrateMonitorInterval(interval: Int) {
+        require(interval in 0..255) { "Invalid heart-rate monitor interval=$interval" }
+        awaitVoid("setHeartrateMonitorInterval failed interval=$interval") {
+            BluetoothSDK.setHeartrateMonitorInterval(interval, it)
+        }
+    }
+
+    suspend fun getSpO2MonitorEnable(): Boolean =
+        awaitBoolValue("getSpO2MonitorEnable failed") { BluetoothSDK.getSpO2MonitorEnable(it) }
+
+    suspend fun setSpO2MonitorEnable(on: Boolean) =
+        awaitVoid("setSpO2MonitorEnable failed on=$on") { BluetoothSDK.setSpO2MonitorEnable(on, it) }
+
+    suspend fun getStressMonitorEnable(): Boolean =
+        awaitBoolValue("getStressMonitorEnable failed") { BluetoothSDK.getStressMonitorEnable(it) }
+
+    suspend fun setStressMonitorEnable(on: Boolean) =
+        awaitVoid("setStressMonitorEnable failed on=$on") { BluetoothSDK.setStressMonitorEnable(on, it) }
+
+    suspend fun getSkinTemperatureMonitorInterval(): Int =
+        awaitIntValue("getSkinTemperatureMonitorInterval failed") { BluetoothSDK.getSkinTemperatureMonitorInterval(it) }
+
+    suspend fun setSkinTemperatureMonitorInterval(interval: Int) {
+        require(interval in 0..255) { "Invalid skin-temperature monitor interval=$interval" }
+        awaitVoid("setSkinTemperatureMonitorInterval failed interval=$interval") {
+            BluetoothSDK.setSkinTemperatureMonitorInterval(interval, it)
+        }
+    }
+
+    suspend fun getRespiratoryRateMonitorInterval(): Int =
+        awaitIntValue("getRespiratoryRateMonitorInterval failed") { BluetoothSDK.getRespiratoryRateMonitorInterval(it) }
+
+    suspend fun setRespiratoryRateMonitorInterval(interval: Int) {
+        require(interval in 0..255) { "Invalid respiratory-rate monitor interval=$interval" }
+        awaitVoid("setRespiratoryRateMonitorInterval failed interval=$interval") {
+            BluetoothSDK.setRespiratoryRateMonitorInterval(interval, it)
+        }
+    }
+
+    // endregion
+
     // region §11 Alarms & reminders
+
+    /** Device reminder subscription only; registration does not configure or trigger a reminder. */
+    fun addReminderNotifyListener(callback: ReminderNotifyCallback) = BluetoothSDK.addReminderNotifyListener(callback)
+
+    fun removeReminderNotifyListener(callback: ReminderNotifyCallback) = BluetoothSDK.removeReminderNotifyListener(callback)
 
     suspend fun getAlarms(): List<Alarm> =
         suspendCancellableCoroutine { cont ->
@@ -864,6 +948,74 @@ class BleRepository(private val application: Application) {
 
     suspend fun delAllAlarms() =
         awaitVoid("delAllAlarms failed") { BluetoothSDK.delAllAlarms(it) }
+
+    suspend fun getLowBatteryReminderSwitch(): Boolean {
+        Log.i(TAG, "getLowBatteryReminderSwitch enter")
+        try {
+            val on = awaitBoolValue("getLowBatteryReminderSwitch failed") {
+                BluetoothSDK.getLowBatteryReminderSwitch(it)
+            }
+            Log.i(TAG, "getLowBatteryReminderSwitch success on=$on")
+            return on
+        } catch (error: Exception) {
+            Log.e(TAG, "getLowBatteryReminderSwitch failed", error)
+            throw error
+        }
+    }
+
+    suspend fun setLowBatteryReminderSwitch(on: Boolean) {
+        Log.i(TAG, "setLowBatteryReminderSwitch enter on=$on")
+        try {
+            awaitVoid("setLowBatteryReminderSwitch failed on=$on") {
+                BluetoothSDK.setLowBatteryReminderSwitch(on, it)
+            }
+            Log.i(TAG, "setLowBatteryReminderSwitch success on=$on")
+        } catch (error: Exception) {
+            Log.e(TAG, "setLowBatteryReminderSwitch failed on=$on", error)
+            throw error
+        }
+    }
+
+    suspend fun getVibrationSettings(): VibrationSettings =
+        suspendCancellableCoroutine { cont ->
+            Log.i(TAG, "getVibrationSettings enter")
+            BluetoothSDK.getVibrationSettings(object : VibrationSettingsCallback() {
+                override fun onSuccess(settings: VibrationSettings) {
+                    Log.i(TAG, "getVibrationSettings success on=${settings.isOn} intensity=${settings.intensity}")
+                    mainHandler.post { if (cont.isActive) cont.resume(settings) }
+                }
+
+                override fun onFail(code: Int) {
+                    Log.e(TAG, "getVibrationSettings failed code=$code")
+                    mainHandler.post {
+                        if (cont.isActive) {
+                            cont.resumeWithException(SdkException(code, "getVibrationSettings failed"))
+                        }
+                    }
+                }
+            })
+        }
+
+    /** Independent fixed-parameter SDK sample; do not read or infer the device's previous settings. */
+    suspend fun setVibrationSettings(on: Boolean, intensity: Int) {
+        Log.i(TAG, "setVibrationSettings enter on=$on intensity=$intensity")
+        try {
+            require(intensity == 33 || intensity == 66 || intensity == 99) {
+                "Invalid demo vibration intensity=$intensity; expected 33, 66 or 99"
+            }
+            val settings = VibrationSettings().apply {
+                isOn = on
+                this.intensity = intensity
+            }
+            awaitVoid("setVibrationSettings failed on=$on intensity=$intensity") {
+                BluetoothSDK.setVibrationSettings(settings, it)
+            }
+            Log.i(TAG, "setVibrationSettings success on=$on intensity=$intensity")
+        } catch (error: Exception) {
+            Log.e(TAG, "setVibrationSettings failed on=$on intensity=$intensity", error)
+            throw error
+        }
+    }
 
     fun createDemoAlarm(
         hour: Int = 7,
