@@ -7,6 +7,8 @@ import com.huawo.nt.sdkdemo.SdkDemoApp
 import com.huawo.nt.sdkdemo.data.repository.BleRepository
 import com.huawo.nt.sdkdemo.ui.bind.BindFlowViewModel
 import com.huawo.nt.sdkdemo.ui.features.AlarmsViewModel
+import com.huawo.nt.sdkdemo.ui.features.JLAlarmsViewModel
+import com.huawo.nt.sdkdemo.ui.features.JLDataSyncViewModel
 import com.huawo.nt.sdkdemo.ui.features.AiAnalysisViewModel
 import com.huawo.nt.sdkdemo.ui.features.AlbumTransferViewModel
 import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateViewModel
@@ -44,6 +46,11 @@ class ViewModelFactory(
                 GoalsViewModel(application, repository) as T
             modelClass.isAssignableFrom(AlarmsViewModel::class.java) ->
                 AlarmsViewModel(application, repository) as T
+            modelClass.isAssignableFrom(JLAlarmsViewModel::class.java) ->
+                JLAlarmsViewModel(application, repository) as T
+            modelClass.isAssignableFrom(JLDataSyncViewModel::class.java) ->
+                JLDataSyncViewModel(application, repository) as T
+            // AI 分析直接调用云端 SDK；设备功能的 ViewModel 继续共享同一个 BleRepository。
             modelClass.isAssignableFrom(AiAnalysisViewModel::class.java) ->
                 AiAnalysisViewModel(application) as T
             modelClass.isAssignableFrom(AutoMonitoringViewModel::class.java) ->

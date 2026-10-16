@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/home_background"
+    android:orientation="vertical">
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
+        android:background="@color/home_background"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/home_accent"
+        app:title="@string/home_auto_monitoring"
+        app:titleCentered="true"
+        app:titleTextAppearance="@style/TextAppearance.SDKDemo.Home.Toolbar"
+        app:titleTextColor="@color/home_text" />
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/home_separator" />
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="false">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SDKDemo.Home.Card">
+                <LinearLayout
+                    android:id="@+id/monitoring_rows"
+                    style="@style/Widget.SDKDemo.Home.CardContent" />
+            </com.google.android.material.card.MaterialCardView>
+            <TextView
+                style="@style/Widget.SDKDemo.Home.DeviceText"
+                android:text="@string/auto_monitoring_note" />
+            <TextView
+                android:id="@+id/status_text"
+                style="@style/Widget.SDKDemo.Home.DeviceText"
+                android:layout_marginTop="12dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

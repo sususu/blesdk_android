@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="56dp"
+    android:paddingVertical="8dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginEnd="12dp"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/metric_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/home_text"
+            android:textSize="16sp" />
+        <TextView
+            android:id="@+id/metric_detail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/home_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/monitor_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:enabled="false"
+        android:thumb="@drawable/monitor_switch_thumb"
+        app:track="@drawable/monitor_switch_track"
+        app:splitTrack="false"
+        app:showText="false"
+        app:switchMinWidth="51dp"
+        app:thumbTint="@null"
+        app:trackTint="@null" />
+</LinearLayout>

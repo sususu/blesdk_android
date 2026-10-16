@@ -1,7 +1,6 @@
 package com.huawo.nt.sdkdemo.ui.features
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.huawo.nt.sdkdemo.R
@@ -79,13 +78,6 @@ class AlarmsViewModel(
     application: Application,
     private val repository: BleRepository,
 ) : AndroidViewModel(application) {
-    private companion object {
-        const val TAG = "AlarmsViewModel"
-        const val JL_ALARM_MIN_ID = 1
-        const val JL_ALARM_MAX_ID = 5
-        const val JL_ALARM_SNOOZE_MINUTES = 10
-    }
-
     private val _uiState = MutableStateFlow(FeatureUiState(status = str(R.string.feature_ready)))
     val uiState: StateFlow<FeatureUiState> = _uiState.asStateFlow()
 
@@ -106,33 +98,6 @@ class AlarmsViewModel(
         val alarm = repository.createDemoAlarm(content = str(R.string.alarms_demo_content))
         repository.addAlarm(alarm)
         str(R.string.alarms_add_ok)
-    }
-
-    /**
-     * WL alarm creation owns ID allocation on the app side. Keep this separate from the
-     * generic addAlarm example, which asks the device for an available ID.
-     */
-    fun addJlDemoAlarm() = runAction(R.string.alarms_adding) {
-        Log.i(TAG, "addJlDemoAlarm enter")
-        try {
-            val existingAlarms = repository.getAlarms()
-            val usedIds = existingAlarms.map { it.id }.toSet()
-            //get alarmId
-            val alarmId =
-                (JL_ALARM_MIN_ID..JL_ALARM_MAX_ID).firstOrNull { it !in usedIds }
-                    ?: throw IllegalStateException(str(R.string.jl_alarms_no_available_id))
-            Log.i(TAG, "addJlDemoAlarm selectedId=$alarmId usedIds=$usedIds")
-
-            val alarm = repository.createDemoAlarm(content = str(R.string.alarms_demo_content))
-            alarm.id = alarmId
-            alarm.snooze = JL_ALARM_SNOOZE_MINUTES
-            repository.addAlarmV2(alarm)
-            Log.i(TAG, "addJlDemoAlarm success id=$alarmId")
-            "${str(R.string.alarms_add_ok)} #$alarmId"
-        } catch (error: Exception) {
-            Log.e(TAG, "addJlDemoAlarm failed", error)
-            throw error
-        }
     }
 
     fun deleteAllAlarms() = runAction(R.string.alarms_deleting) {
@@ -158,39 +123,6 @@ class AlarmsViewModel(
     fun setWashHand() = runAction(R.string.reminders_setting) {
         repository.setWashHandReminder(repository.createDemoWashHandReminder())
         str(R.string.reminders_wash_ok)
-    }
-
-    fun getLowBatteryReminder() = runAction(R.string.reminders_getting) {
-        val on = repository.getLowBatteryReminderSwitch()
-        str(R.string.reminders_low_battery_value, str(if (on) R.string.reminders_on else R.string.reminders_off))
-    }
-
-    fun setLowBatteryReminder(on: Boolean) = runAction(R.string.reminders_setting) {
-        repository.setLowBatteryReminderSwitch(on)
-        str(R.string.reminders_low_battery_set_ok, str(if (on) R.string.reminders_on else R.string.reminders_off))
-    }
-
-    fun getVibration() = runAction(R.string.reminders_getting) {
-        val settings = repository.getVibrationSettings()
-        formatVibration(settings.isOn, settings.intensity)
-    }
-
-    fun setVibration(on: Boolean, intensity: Int) = runAction(R.string.reminders_setting) {
-        repository.setVibrationSettings(on, intensity)
-        // Report the acknowledged sample parameters; readback remains an independent button.
-        str(R.string.reminders_vibration_set_ok, formatVibration(on, intensity))
-    }
-
-    private fun formatVibration(on: Boolean, intensity: Int): String {
-        // A disabled vibration switch must not present a cached intensity as an active level.
-        if (!on) return str(R.string.reminders_vibration_disabled)
-        val level = when (intensity) {
-            33 -> R.string.reminders_level_weak
-            66 -> R.string.reminders_level_medium
-            99 -> R.string.reminders_level_strong
-            else -> R.string.reminders_level_unknown
-        }
-        return str(R.string.reminders_vibration_value, str(level), intensity)
     }
 
     private fun runAction(statusRes: Int, block: suspend () -> String) {

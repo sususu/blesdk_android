@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/home_background"
     android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
@@ -10,306 +11,103 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
+        android:background="@color/home_background"
         app:navigationIcon="?attr/homeAsUpIndicator"
-        app:navigationIconTint="@color/white"
+        app:navigationIconTint="@color/home_accent"
         app:title="@string/feature_ai"
-        app:titleTextColor="@color/white" />
+        app:titleCentered="true"
+        app:titleTextAppearance="@style/TextAppearance.SDKDemo.Home.Toolbar"
+        app:titleTextColor="@color/home_text" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/home_separator" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:clipToPadding="false"
-        android:fillViewport="true"
-        android:overScrollMode="ifContentScrolls">
+        android:fillViewport="false">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="24dp">
-
-            <!-- Overview -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardElevation="0dp"
-                app:strokeColor="#FFE0E0E0"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
+            android:padding="16dp">
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SDKDemo.Home.Card">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
                     <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ai_guide_card_overview_title"
-                        android:textAppearance="?attr/textAppearanceSubtitle1"
-                        android:textColor="?android:attr/textColorPrimary" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:lineSpacingExtra="2dp"
-                        android:text="@string/ai_guide_card_overview_body"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:attr/textColorSecondary" />
+                        style="@style/Widget.SDKDemo.Home.DeviceText"
+                        android:text="@string/ai_menu_hint" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Dependencies -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardElevation="0dp"
-                app:strokeColor="#FFE0E0E0"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SDKDemo.Home.Card">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
                     <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ai_guide_card_deps_title"
-                        android:textAppearance="?attr/textAppearanceSubtitle1"
-                        android:textColor="?android:attr/textColorPrimary" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:lineSpacingExtra="2dp"
-                        android:text="@string/ai_guide_card_deps_body"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:attr/textColorSecondary" />
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/ui_actions" />
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row"
+                        android:layout_marginTop="0dp">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_guide"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/ai_menu_guide" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_open_demo"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/ai_menu_demo" />
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1" />
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Permissions -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardElevation="0dp"
-                app:strokeColor="#FFE0E0E0"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SDKDemo.Home.Card">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
                     <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ai_guide_card_perm_title"
-                        android:textAppearance="?attr/textAppearanceSubtitle1"
-                        android:textColor="?android:attr/textColorPrimary" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:lineSpacingExtra="2dp"
-                        android:text="@string/ai_guide_card_perm_body"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:attr/textColorSecondary" />
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/ai_analysis_title" />
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row"
+                        android:layout_marginTop="0dp">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_health"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/ai_menu_health" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_insight"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/ai_menu_insight" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_body"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:layout_marginEnd="0dp"
+                            android:text="@string/ai_menu_body" />
+                    </LinearLayout>
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_sleep_day"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/ai_menu_sleep_day" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_sleep_week"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/ai_menu_sleep_week" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_sleep_month"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:layout_marginEnd="0dp"
+                            android:text="@string/ai_menu_sleep_month" />
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Steps -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardElevation="0dp"
-                app:strokeColor="#FFE0E0E0"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ai_guide_card_steps_title"
-                        android:textAppearance="?attr/textAppearanceSubtitle1"
-                        android:textColor="?android:attr/textColorPrimary" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:lineSpacingExtra="2dp"
-                        android:text="@string/ai_guide_card_steps_body"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:attr/textColorSecondary" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Device info -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardElevation="0dp"
-                app:strokeColor="#FFE0E0E0"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ai_guide_card_device_title"
-                        android:textAppearance="?attr/textAppearanceSubtitle1"
-                        android:textColor="?android:attr/textColorPrimary" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:lineSpacingExtra="2dp"
-                        android:text="@string/ai_guide_card_device_body"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:attr/textColorSecondary" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Events -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardElevation="0dp"
-                app:strokeColor="#FFE0E0E0"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ai_guide_card_events_title"
-                        android:textAppearance="?attr/textAppearanceSubtitle1"
-                        android:textColor="?android:attr/textColorPrimary" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:lineSpacingExtra="2dp"
-                        android:text="@string/ai_guide_card_events_body"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:attr/textColorSecondary" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Errors -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardElevation="0dp"
-                app:strokeColor="#FFE0E0E0"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ai_guide_card_errors_title"
-                        android:textAppearance="?attr/textAppearanceSubtitle1"
-                        android:textColor="?android:attr/textColorPrimary" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:lineSpacingExtra="2dp"
-                        android:text="@string/ai_guide_card_errors_body"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:attr/textColorSecondary" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Demo tip -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardElevation="0dp"
-                app:strokeColor="#FFE0E0E0"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ai_guide_card_demo_title"
-                        android:textAppearance="?attr/textAppearanceSubtitle1"
-                        android:textColor="?android:attr/textColorPrimary" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:lineSpacingExtra="2dp"
-                        android:text="@string/ai_guide_card_demo_body"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:attr/textColorSecondary" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_open_demo"
-                style="@style/Widget.SDKDemo.Button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/ai_guide_open_demo" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/ai_guide_open_demo_hint"
-                android:textAppearance="?attr/textAppearanceCaption"
-                android:textColor="?android:attr/textColorSecondary" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

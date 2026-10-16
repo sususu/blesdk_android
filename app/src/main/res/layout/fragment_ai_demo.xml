@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/home_background"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/ai_demo_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
+        android:background="@color/home_background"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/home_accent"
+        app:title="@string/ai_menu_demo"
+        app:titleCentered="true"
+        app:titleTextAppearance="@style/TextAppearance.SDKDemo.Home.Toolbar"
+        app:titleTextColor="@color/home_text" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/home_separator" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SDKDemo.Home.Card">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/ui_device_status" />
+                    <TextView
+                        android:id="@+id/tv_status"
+                        style="@style/Widget.SDKDemo.Home.DeviceText" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SDKDemo.Home.Card">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/ai_wf_section_device" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/ai_wf_device_id"
+                        app:boxBackgroundMode="outline">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_device_id"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:singleLine="true" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SDKDemo.Home.Card">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/ai_wf_section_record_path" />
+                    <TextView
+                        android:id="@+id/tv_firmware_record_hint"
+                        style="@style/Widget.SDKDemo.Home.DeviceText"
+                        android:layout_marginBottom="8dp" />
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.DeviceText"
+                        android:text="@string/ai_wf_label_record_mode" />
+                    <Spinner
+                        android:id="@+id/spinner_record_mode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:layout_marginBottom="8dp" />
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.DeviceText"
+                        android:text="@string/ai_wf_label_platform" />
+                    <Spinner
+                        android:id="@+id/spinner_platform"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:layout_marginBottom="8dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SDKDemo.Home.Card">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/ui_parameters" />
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.DeviceText"
+                        android:text="@string/cwf_section_size" />
+                    <Spinner
+                        android:id="@+id/spinner_size_preset"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:layout_marginBottom="8dp" />
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.DeviceText"
+                        android:text="@string/ai_wf_label_bg_size" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:baselineAligned="false">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="@string/ai_wf_hint_w"
+                        app:boxBackgroundMode="outline">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_width"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:singleLine="true"
+                            android:gravity="center"
+                            android:text="480" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:hint="@string/ai_wf_hint_h"
+                        app:boxBackgroundMode="outline">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_height"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:singleLine="true"
+                            android:gravity="center"
+                            android:text="480" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:hint="@string/ai_wf_hint_r"
+                        app:boxBackgroundMode="outline">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_corner"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:singleLine="true"
+                            android:gravity="center"
+                            android:text="240" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.DeviceText"
+                        android:text="@string/ai_wf_label_thumb_size" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:baselineAligned="false">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="@string/ai_wf_hint_w"
+                        app:boxBackgroundMode="outline">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_thumb_w"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:singleLine="true"
+                            android:gravity="center"
+                            android:text="264" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:hint="@string/ai_wf_hint_h"
+                        app:boxBackgroundMode="outline">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_thumb_h"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:singleLine="true"
+                            android:gravity="center"
+                            android:text="264" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:hint="@string/ai_wf_hint_r"
+                        app:boxBackgroundMode="outline">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_thumb_corner"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:singleLine="true"
+                            android:gravity="center"
+                            android:text="132" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SDKDemo.Home.Card">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/ui_actions" />
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row"
+                        android:layout_marginTop="0dp">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_apply"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/ai_wf_apply" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_share"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/ai_wf_share" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_play"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:layout_marginEnd="0dp"
+                            android:text="@string/ai_wf_play" />
+                    </LinearLayout>
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_record"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/ai_wf_record" />
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp" />
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SDKDemo.Home.Card">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/ai_wf_section_preview" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/ai_wf_thumbnail"
+                                android:textColor="@color/home_secondary"
+                                android:textSize="13sp" />
+                            <ImageView
+                                android:id="@+id/img_thumbnail"
+                                android:layout_width="120dp"
+                                android:layout_height="120dp"
+                                android:layout_marginTop="8dp"
+                                android:background="@color/home_tile"
+                                android:contentDescription="@null"
+                                android:scaleType="centerCrop" />
+                        </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/ai_wf_background"
+                                android:textColor="@color/home_secondary"
+                                android:textSize="13sp" />
+                            <ImageView
+                                android:id="@+id/img_background"
+                                android:layout_width="120dp"
+                                android:layout_height="120dp"
+                                android:layout_marginTop="8dp"
+                                android:background="@color/home_tile"
+                                android:contentDescription="@null"
+                                android:scaleType="centerCrop" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_toggle_ai_logs"
+        style="@style/Widget.SDKDemo.Home.Tile"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="0"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:text="@string/home_show_logs" />
+
+    <LinearLayout
+        android:id="@+id/ai_log_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/log_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="12dp"
+            android:background="@color/home_card"
+            android:fillViewport="false"
+            android:overScrollMode="ifContentScrolls">
+            <TextView
+                android:id="@+id/tv_log"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:padding="10dp"
+                android:textColor="@color/home_text"
+                android:textSize="12sp"
+                android:textIsSelectable="true" />
+        </androidx.core.widget.NestedScrollView>
+    </LinearLayout>
+</LinearLayout>

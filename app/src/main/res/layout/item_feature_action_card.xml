@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.SDKDemo.Home.Card">
+
+    <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+        <TextView
+            android:id="@+id/card_title"
+            style="@style/Widget.SDKDemo.Home.Heading" />
+
+        <LinearLayout
+            android:id="@+id/card_actions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

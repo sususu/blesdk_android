@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/home_background"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
+        android:background="@color/home_background"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/home_accent"
+        app:titleCentered="true"
+        app:titleTextAppearance="@style/TextAppearance.SDKDemo.Home.Toolbar"
+        app:titleTextColor="@color/home_text" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/home_separator" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SDKDemo.Home.Card">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/ui_device_status" />
+                    <TextView
+                        android:id="@+id/status_text"
+                        style="@style/Widget.SDKDemo.Home.DeviceText" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.huawo.nt.sdkdemo.ui.common.FeatureScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:maxHeight="300dp"
+                android:fillViewport="false"
+                android:scrollbars="vertical">
+
+                <LinearLayout
+                    android:id="@+id/actions_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </com.huawo.nt.sdkdemo.ui.common.FeatureScrollView>
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.SDKDemo.Home.Card"
+                android:layout_marginBottom="0dp">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/ui_execution_result" />
+                    <com.huawo.nt.sdkdemo.ui.common.FeatureScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:maxHeight="240dp"
+                        android:fillViewport="false"
+                        android:scrollbars="vertical">
+                        <TextView
+                            android:id="@+id/result_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/ui_result_placeholder"
+                            android:textColor="@color/home_secondary"
+                            android:textSize="15sp"
+                            android:textIsSelectable="true" />
+                    </com.huawo.nt.sdkdemo.ui.common.FeatureScrollView>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

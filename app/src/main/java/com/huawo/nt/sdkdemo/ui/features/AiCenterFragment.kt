@@ -9,12 +9,7 @@ import com.huawo.nt.sdkdemo.R
 import com.huawo.nt.sdkdemo.databinding.FragmentAiCenterBinding
 import com.huawo.nt.sdkdemo.ui.watchface.AiWatchfaceFragment
 
-/**
- * Home → Device features → AI
- *
- * Card-based [com.huawo.ai.AiCenter] integration guide (localized strings).
- * Opens [AiWatchfaceFragment] for the live demo.
- */
+/** AI navigation only; each destination keeps its own SDK initialization and request lifecycle. */
 class AiCenterFragment : Fragment() {
     private var _binding: FragmentAiCenterBinding? = null
     private val binding get() = _binding!!
@@ -30,15 +25,26 @@ class AiCenterFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.toolbar.setNavigationOnClickListener {
-            parentFragmentManager.popBackStack()
-        }
-        binding.btnOpenDemo.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, AiWatchfaceFragment())
-                .addToBackStack(AiWatchfaceFragment::class.java.simpleName)
-                .commit()
-        }
+        binding.toolbar.setNavigationOnClickListener { parentFragmentManager.popBackStack() }
+        binding.btnGuide.setOnClickListener { openFeature(AiGuideFragment()) }
+        binding.btnOpenDemo.setOnClickListener { openFeature(AiWatchfaceFragment.newDemoInstance()) }
+        binding.btnHealth.setOnClickListener { openReport(AiAnalysisViewModel.Report.HEALTH) }
+        binding.btnInsight.setOnClickListener { openReport(AiAnalysisViewModel.Report.INSIGHT) }
+        binding.btnBody.setOnClickListener { openReport(AiAnalysisViewModel.Report.BODY) }
+        binding.btnSleepDay.setOnClickListener { openReport(AiAnalysisViewModel.Report.DAY) }
+        binding.btnSleepWeek.setOnClickListener { openReport(AiAnalysisViewModel.Report.WEEK) }
+        binding.btnSleepMonth.setOnClickListener { openReport(AiAnalysisViewModel.Report.MONTH) }
+    }
+
+    private fun openReport(report: AiAnalysisViewModel.Report) {
+        openFeature(AiAnalysisFragment.newInstance(report))
+    }
+
+    private fun openFeature(fragment: Fragment) {
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(fragment::class.java.simpleName)
+            .commit()
     }
 
     override fun onDestroyView() {

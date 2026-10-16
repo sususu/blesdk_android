@@ -60,6 +60,9 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntValueWithTimeCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.MonitorStateChangedCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.NotProperlyWornCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.ReminderNotifyCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.RemindersCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.WorkoutTypeRecognitionCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.WorkoutsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SedentaryReminderCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SkinTemperatureCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SleepsCallback
@@ -107,6 +110,8 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.GpsStatus
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Heartrate
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Hrv
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.RepeatPeriodUnit
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Reminder
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.ReminderType
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.SedentaryReminder
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.SkinTemperature
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Sleep
@@ -121,6 +126,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Unit as MeasureUnit
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.UserInfo
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.VibrationSettings
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.WashHandReminder
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Workout
 import com.huawo.sdk.bluetoothsdk.interfaces.utils.LanguageUtils
 import com.huawo.sdk.bluetoothsdk.spp.SppFilesTransferTask
 import java.io.File
@@ -710,7 +716,10 @@ class BleRepository(private val application: Application) {
             )
         }
 
-    /** Fetch JieLi skin-temperature history; the SDK already supplies milliseconds and Celsius. */
+    /**
+     * 读取杰里历史皮肤温度，保留 SDK 已转换的毫秒时间戳和浮点摄氏度。
+     * 结果回到主线程后恢复协程，错误码保留在 SdkException；取消等待后忽略迟到回调。
+     */
     suspend fun getSkinTemperature(): List<BleSkinTemperature> =
         suspendCancellableCoroutine { cont ->
             Log.i(TAG, "getSkinTemperature enter")
@@ -738,7 +747,7 @@ class BleRepository(private val application: Application) {
             )
         }
 
-    /** Fetch JieLi respiratory-rate history through its own request, not a batch request. */
+    /** 独立读取杰里呼吸频率历史，保留 SDK 时间和值，供上层串行同步链逐项调用。 */
     suspend fun getBreaths(): List<BleBreaths> =
         suspendCancellableCoroutine { cont ->
             Log.i(TAG, "getBreaths enter")
@@ -766,6 +775,30 @@ class BleRepository(private val application: Application) {
             )
         }
 
+    /** 独立读取杰理 Workout 运动记录，保留 SDK 原模型及随回包提供的点列；不自动删除。 */
+    suspend fun getWorkoutV2(): List<Workout> =
+        suspendCancellableCoroutine { cont ->
+            Log.i(TAG, "getWorkoutV2 enter")
+            BluetoothSDK.getWorkoutV2(object : WorkoutsCallback() {
+                override fun onSuccess(workoutList: List<Workout>?) {
+                    mainHandler.post {
+                        if (cont.isActive) {
+                            val rows = workoutList.orEmpty()
+                            Log.i(TAG, "getWorkoutV2 success count=${rows.size}")
+                            cont.resume(rows)
+                        }
+                    }
+                }
+
+                override fun onFail(code: Int) {
+                    Log.e(TAG, "getWorkoutV2 failed code=$code")
+                    mainHandler.post {
+                        if (cont.isActive) cont.resumeWithException(SdkException(code, "getWorkoutV2 failed"))
+                    }
+                }
+            })
+        }
+
     suspend fun deleteSports() = awaitVoid("deleteSports failed") { BluetoothSDK.delSports(it) }
 
     suspend fun deleteHeartrates() =
@@ -781,10 +814,14 @@ class BleRepository(private val application: Application) {
 
     suspend fun deleteHrvsV2() = awaitVoid("deleteHrvsV2 failed") { BluetoothSDK.delHrvV2(it) }
 
+    // 读取与设备缓存删除分开；何时删除由上层的数据处理流程决定。
     suspend fun deleteSkinTemperature() =
         awaitVoid("deleteSkinTemperature failed") { BluetoothSDK.delSkinTemperature(it) }
 
     suspend fun deleteBreaths() = awaitVoid("deleteBreaths failed") { BluetoothSDK.delBreaths(it) }
+
+    /** 显式删除设备端全部 Workout 历史记录；读取运动记录不会调用此接口。 */
+    suspend fun deleteWorkouts() = awaitVoid("delWorkouts failed") { BluetoothSDK.delWorkouts(it) }
 
     // region §8 Goals
 
@@ -829,11 +866,13 @@ class BleRepository(private val application: Application) {
         BluetoothSDK.startMonitoring(type, callback)
     }
 
+    /** 回调仅确认停止指令，设备停止事件由单独的 MonitorStateChangedCallback 接收。 */
     fun stopMonitoring(type: DataType, callback: BoolCallback) {
         require(type != DataType.Unkown) { "Unsupported measurement type=$type" }
         BluetoothSDK.stopMonitoring(type, callback)
     }
 
+    // 数值回调不携带测量类型，上层只能绑定一个当前会话；解绑时使用同一个回调实例。
     fun addRealtimeIntWithTimeListener(callback: IntValueWithTimeCallback) = BluetoothSDK.addRealtimeIntWithTimeListener(callback)
     fun removeRealtimeIntWithTimeListener(callback: IntValueWithTimeCallback) = BluetoothSDK.removeRealtimeIntWithTimeListener(callback)
     fun addRealtimeFloatWithTimeListener(callback: FloatValueWithTimeCallback) = BluetoothSDK.addRealtimeFloatWithTimeListener(callback)
@@ -873,6 +912,7 @@ class BleRepository(private val application: Application) {
     suspend fun getSkinTemperatureMonitorInterval(): Int =
         awaitIntValue("getSkinTemperatureMonitorInterval failed") { BluetoothSDK.getSkinTemperatureMonitorInterval(it) }
 
+    /** 0 为关闭，正数为开启；此处只校验单字节范围，不推断参数的采样时间单位。 */
     suspend fun setSkinTemperatureMonitorInterval(interval: Int) {
         require(interval in 0..255) { "Invalid skin-temperature monitor interval=$interval" }
         awaitVoid("setSkinTemperatureMonitorInterval failed interval=$interval") {
@@ -883,6 +923,7 @@ class BleRepository(private val application: Application) {
     suspend fun getRespiratoryRateMonitorInterval(): Int =
         awaitIntValue("getRespiratoryRateMonitorInterval failed") { BluetoothSDK.getRespiratoryRateMonitorInterval(it) }
 
+    /** 呼吸频率监测沿用 0 关、正数开的参数约定，设备错误继续传回页面。 */
     suspend fun setRespiratoryRateMonitorInterval(interval: Int) {
         require(interval in 0..255) { "Invalid respiratory-rate monitor interval=$interval" }
         awaitVoid("setRespiratoryRateMonitorInterval failed interval=$interval") {
@@ -897,7 +938,24 @@ class BleRepository(private val application: Application) {
     /** Device reminder subscription only; registration does not configure or trigger a reminder. */
     fun addReminderNotifyListener(callback: ReminderNotifyCallback) = BluetoothSDK.addReminderNotifyListener(callback)
 
+    /** 只移除指定订阅，不清空其他页面或模块注册的提醒监听。 */
     fun removeReminderNotifyListener(callback: ReminderNotifyCallback) = BluetoothSDK.removeReminderNotifyListener(callback)
+
+    /** 只订阅运动类型识别事件，不发送设备自动识别开关或启动运动命令。 */
+    fun addWorkoutTypeRecognitionCallback(callback: WorkoutTypeRecognitionCallback) =
+        BluetoothSDK.addWorkoutTypeRecognitionCallback(callback)
+
+    fun removeWorkoutTypeRecognitionCallback(callback: WorkoutTypeRecognitionCallback) =
+        BluetoothSDK.removeWorkoutTypeRecognitionCallback(callback)
+
+    /** Device setting only; reading or writing it does not register a recognition listener. */
+    suspend fun getAutoDetectWorkoutsSwitch(): Boolean =
+        awaitBoolValue("getAutoDetectWorkoutsSwitch failed") { BluetoothSDK.getAutoDetectWorkoutsSwitch(it) }
+
+    suspend fun setAutoDetectWorkoutsSwitch(enabled: Boolean) =
+        awaitVoid("setAutoDetectWorkoutsSwitch failed enabled=$enabled") {
+            BluetoothSDK.setAutoDetectWorkoutsSwitch(enabled, it)
+        }
 
     suspend fun getAlarms(): List<Alarm> =
         suspendCancellableCoroutine { cont ->
@@ -949,6 +1007,31 @@ class BleRepository(private val application: Application) {
     suspend fun delAllAlarms() =
         awaitVoid("delAllAlarms failed") { BluetoothSDK.delAllAlarms(it) }
 
+    suspend fun getReminders(): List<Reminder> = suspendCancellableCoroutine { cont ->
+        BluetoothSDK.getReminders(object : RemindersCallback() {
+            override fun onSuccess(list: List<Reminder>?) {
+                mainHandler.post { if (cont.isActive) cont.resume(list.orEmpty()) }
+            }
+
+            override fun onFail(code: Int) {
+                mainHandler.post {
+                    if (cont.isActive) cont.resumeWithException(SdkException(code, "getReminders failed"))
+                }
+            }
+        })
+    }
+
+    /** Demo reserves IDs 6..10 for reminders; the SDK sends the caller-supplied ID directly. */
+    suspend fun addReminderV2(reminder: Reminder) {
+        require(reminder.id in 6..10) { "JL demo reminder ID must be in 6..10: ${reminder.id}" }
+        awaitVoid("addReminderV2 failed id=${reminder.id}") { BluetoothSDK.addReminderV2(reminder, it) }
+    }
+
+    /** Deletes reminders only (0x9C action 0x04), not the combined alarm/reminder collection. */
+    suspend fun delAllReminders() =
+        awaitVoid("delAllReminder failed") { BluetoothSDK.delAllReminder(it) }
+
+    /** 读取设备低电量提醒开关；是否收到低电量事件由另一组提醒监听接口负责。 */
     suspend fun getLowBatteryReminderSwitch(): Boolean {
         Log.i(TAG, "getLowBatteryReminderSwitch enter")
         try {
@@ -963,6 +1046,7 @@ class BleRepository(private val application: Application) {
         }
     }
 
+    /** 设置应答只代表设备确认开关值，不代表已经触发提醒。 */
     suspend fun setLowBatteryReminderSwitch(on: Boolean) {
         Log.i(TAG, "setLowBatteryReminderSwitch enter on=$on")
         try {
@@ -976,6 +1060,7 @@ class BleRepository(private val application: Application) {
         }
     }
 
+    /** 原样返回设备的开关和强度，由页面决定关闭时的展示文案。 */
     suspend fun getVibrationSettings(): VibrationSettings =
         suspendCancellableCoroutine { cont ->
             Log.i(TAG, "getVibrationSettings enter")
@@ -996,7 +1081,7 @@ class BleRepository(private val application: Application) {
             })
         }
 
-    /** Independent fixed-parameter SDK sample; do not read or infer the device's previous settings. */
+    /** 设置固定示例参数；on 控制开关，关闭时仍保留传入强度，不通过强度 0 代替关闭。 */
     suspend fun setVibrationSettings(on: Boolean, intensity: Int) {
         Log.i(TAG, "setVibrationSettings enter on=$on intensity=$intensity")
         try {
@@ -1033,6 +1118,19 @@ class BleRepository(private val application: Application) {
             setFriday(true)
             timePointList = listOf(TimePoint(hour, minute))
         }
+
+    fun createDemoReminder(content: String): Reminder = Reminder().apply {
+        isOn = true
+        type = ReminderType.Custom
+        this.content = content
+        repeatPeriodUnit = RepeatPeriodUnit.Week
+        setMonday(true)
+        setTuesday(true)
+        setWednesday(true)
+        setThursday(true)
+        setFriday(true)
+        timePointList = listOf(TimePoint(10, 0))
+    }
 
     suspend fun getSedentaryReminder(): SedentaryReminder =
         suspendCancellableCoroutine { cont ->

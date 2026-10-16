@@ -1,18 +1,23 @@
 package com.huawo.nt.sdkdemo.util
 
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
+import com.google.android.material.color.MaterialColors
+import com.google.android.material.shape.MaterialShapeDrawable
 import com.huawo.nt.sdkdemo.R
 
 /**
@@ -26,7 +31,7 @@ object EdgeToEdgeHelper {
     /** 在 [android.app.Activity.onCreate] 里、[super.onCreate][FragmentActivity.onCreate] 之前调用。 */
     fun enable(activity: ComponentActivity) {
         activity.enableEdgeToEdge(
-            // Toolbar 为品牌蓝，状态栏图标用浅色
+            // 启动时沿用蓝色标题栏的浅色图标；页面恢复显示时再按实际顶部背景更新。
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(
                 lightScrim = Color.TRANSPARENT,
@@ -70,9 +75,31 @@ object EdgeToEdgeHelper {
                         f.parentFragment == null -> applyContentStatusBarInsets(v)
                     }
                 }
+
+                override fun onFragmentResumed(fm: FragmentManager, f: Fragment) {
+                    // 只跟随主容器页面（含返回）；Tab 子页和弹窗不能覆盖宿主状态栏。
+                    if (f.parentFragment != null || f.id != R.id.fragment_container) return
+                    val view = f.view ?: return
+                    updateStatusBarAppearance(activity, view.findViewById<View>(R.id.toolbar) ?: view)
+                }
             },
             true,
         )
+    }
+
+    private fun updateStatusBarAppearance(activity: FragmentActivity, topView: View) {
+        val windowBackground = MaterialColors.getColor(topView, android.R.attr.colorBackground)
+        val color = when (val background = topView.background) {
+            is ColorDrawable -> background.color
+            // MaterialToolbar 会把纯色背景转换为 MaterialShapeDrawable。
+            is MaterialShapeDrawable -> background.fillColor?.let {
+                it.getColorForState(topView.drawableState, it.defaultColor)
+            }
+            else -> null
+        } ?: windowBackground
+        val opaqueColor = ColorUtils.compositeColors(color, windowBackground)
+        WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+            .isAppearanceLightStatusBars = ColorUtils.calculateLuminance(opaqueColor) > 0.5
     }
 
     fun applyToolbarStatusBarInsets(toolbar: View) {

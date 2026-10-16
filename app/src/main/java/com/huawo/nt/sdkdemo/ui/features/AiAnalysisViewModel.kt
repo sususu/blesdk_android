@@ -42,6 +42,11 @@ import kotlinx.coroutines.withTimeout
 import org.json.JSONArray
 import org.json.JSONObject
 
+/**
+ * 无屏 AI 分析示例：固定健康入参实际请求云端，结果仅供页面展示。
+ * 洞察、身体状态和三种睡眠报告共用页面进入时完成的 OmniAgent 初始化；
+ * 运动健康分析保留独立的 AFlash 初始化流程，本页分别管理初始化等待与报告生成任务。
+ */
 class AiAnalysisViewModel(application: Application) : AndroidViewModel(application) {
     enum class Report { HEALTH, INSIGHT, BODY, DAY, WEEK, MONTH }
     private companion object {
@@ -56,6 +61,7 @@ class AiAnalysisViewModel(application: Application) : AndroidViewModel(applicati
     val uiState = _uiState.asStateFlow()
     private var requestJob: Job? = null
     private var initializationJob: Job? = null
+    // 每次开始或取消任务都会更新版本，防止旧页面的完成／取消处理覆盖新任务状态。
     private var operationVersion = 0L
     private val _omniReady = MutableStateFlow(false)
     val omniReady = _omniReady.asStateFlow()
@@ -67,6 +73,7 @@ class AiAnalysisViewModel(application: Application) : AndroidViewModel(applicati
     var appKey = DEMO_APP_KEY
         private set
 
+    /** 输入变化只使旧配置失效；鉴权请求由重新初始化按钮发起，避免逐字输入时重复请求。 */
     fun updateConfiguration(deviceId: String, channelId: String, appKey: String) {
         if (this.deviceId == deviceId && this.channelId == channelId && this.appKey == appKey) return
         // Editable parameters invalidate the previous identity/auth state, not only the UI flag.
@@ -77,6 +84,10 @@ class AiAnalysisViewModel(application: Application) : AndroidViewModel(applicati
         _uiState.update { it.copy(status = str(R.string.ai_analysis_config_changed), result = "") }
     }
 
+    /**
+     * 页面进入或手动重试时初始化 OmniAgent，成功后才允许提交对应五项报告。
+     * deviceId、channelId、appKey 为本次配置快照；此入口不初始化 AFlash。
+     */
     fun initialize(deviceId: String, channelId: String, appKey: String) {
         if (_uiState.value.busy) return
         val version = ++operationVersion
@@ -114,12 +125,14 @@ class AiAnalysisViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    /** 只清除此页已标记就绪且设备身份一致的 SDK 状态。 */
     private fun clearOmniReadiness() {
         val center = AiCenter.getInstance()
         if (_omniReady.value && center.isOmniAgentReadyFor(deviceId)) center.setOmniAgentReadyDeviceId(null)
         _omniReady.value = false
     }
 
+    /** 同时只生成一项报告；OmniAgent 报告复用就绪状态，HEALTH 继续走原 AFlash 流程。 */
     fun generate(report: Report) {
         if (_uiState.value.busy) return
         if (report != Report.HEALTH && (!_omniReady.value || !AiCenter.getInstance().isOmniAgentReadyFor(deviceId))) {
@@ -198,6 +211,7 @@ class AiAnalysisViewModel(application: Application) : AndroidViewModel(applicati
             result = str(R.string.ai_analysis_result, input, "$report: $message")) }
     }
 
+    /** 将 SDK 完成回调转为协程等待，取消后的迟到回调不再恢复本页就绪状态。 */
     private suspend fun initializeOmni(id: String, channel: String, key: String) {
         // Do not mark ready on submission, or reuse readiness after credentials/device change.
         val center = AiCenter.getInstance()
@@ -214,6 +228,10 @@ class AiAnalysisViewModel(application: Application) : AndroidViewModel(applicati
         Log.i(TAG, "Omni initialized deviceId=$id")
     }
 
+    /**
+     * 沿用 AFlash 初始化示例：setDeviceInfo 内部已触发初始化，后面的显式 initialize
+     * 用于取得完成回调，当前仍会重复初始化；这不是 OmniAgent 页面初始化的一部分。
+     */
     private suspend fun initializeHealth(id: String) {
         val center = AiCenter.getInstance()
         val language = LocaleHelper.localizedContext(context).resources.configuration.locales[0].language
@@ -247,6 +265,7 @@ class AiAnalysisViewModel(application: Application) : AndroidViewModel(applicati
         Log.i(TAG, "AFlash initialized deviceId=$id")
     }
 
+    /** 直接分析 App 提供的数据，无屏 Handler 只返回本次结果，不向设备下发报告。 */
     private suspend fun healthReport(sample: HealthData): String = suspendCancellableCoroutine { continuation ->
         val handler = AFlashScreenlessHealthAnalysisHandler { result, code, message ->
             if (continuation.isActive) {
@@ -289,6 +308,7 @@ class AiAnalysisViewModel(application: Application) : AndroidViewModel(applicati
         continuation.invokeOnCancellation { handler.cancel() }
     }
 
+    /** 页面停止时取消自身等待／生成任务；保留已完成的初始化，不销毁全局 AI 单例。 */
     fun cancelRequest() {
         val initializing = initializationJob?.isActive == true
         if (!initializing && requestJob?.isActive != true) return
@@ -333,13 +353,11 @@ class AiAnalysisViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun bodySample(): JSONObject {
-        // Body Status takes a single-object array. Hours are 23 -> 0; future hours stay zero.
-        val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        fun hours(value: Int) = (23 downTo 0).joinToString(",") { if (it > currentHour) "0" else "$value" }
+        // Body Status keeps one day's object; these four mock daily averages are single-value strings.
         return JSONObject().put("date", date(0, "yyyy/M/d")).put("stepGoal", "10000")
             .put("steps", "8000").put("activityDuration_min", "40").put("calorieGoal_kcal", "350")
-            .put("restingheartRate_bpm", hours(58)).put("heartRate_bpm", hours(72))
-            .put("heartratevariability(hrv)", hours(45)).put("stress", hours(30))
+            .put("restingheartRate_bpm", "58").put("heartRate_bpm", "72")
+            .put("heartratevariability(hrv)", "45").put("stress", "30")
             .put("sleep", "480").put("sleepQuality", "85").put("lightSleep_min", "300").put("deepSleep_min", "120")
     }
 }

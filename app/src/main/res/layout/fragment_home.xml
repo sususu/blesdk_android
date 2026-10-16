@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/home_background"
     android:orientation="vertical"
     tools:context=".ui.main.HomeFragment">
 
@@ -12,436 +13,376 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
+        android:background="@color/home_background"
+        app:subtitleCentered="true"
+        app:subtitleTextColor="@color/home_secondary"
         app:title="@string/app_name"
-        app:titleTextColor="@color/white" />
+        app:titleCentered="true"
+        app:titleTextAppearance="@style/TextAppearance.SDKDemo.Home.Toolbar"
+        app:titleTextColor="@color/home_text" />
 
-    <LinearLayout
-        android:id="@+id/status_banner"
+    <View
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/surface_low"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="12dp">
-
-        <ProgressBar
-            android:id="@+id/status_progress"
-            style="?android:attr/progressBarStyleSmall"
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:visibility="gone" />
-
-        <ImageView
-            android:id="@+id/status_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:contentDescription="@null"
-            android:src="@android:drawable/stat_sys_data_bluetooth"
-            app:tint="?attr/colorPrimary" />
-
-        <TextView
-            android:id="@+id/status_text"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:textAppearance="?attr/textAppearanceSubtitle1"
-            android:textColor="?android:attr/textColorPrimary"
-            tools:text="SDK å°±ç»ª" />
-    </LinearLayout>
+        android:layout_height="1dp"
+        android:background="@color/home_separator" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:clipToPadding="false"
         android:fillViewport="false"
-        android:overScrollMode="ifContentScrolls">
+        android:overScrollMode="ifContentScrolls"
+        android:scrollbars="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="16dp">
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/device_card"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp"
-        android:visibility="gone"
-        app:cardElevation="0dp"
-        app:strokeColor="#FFE0E0E0"
-        app:strokeWidth="1dp">
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.SDKDemo.Home.Card">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="12dp">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/home_connection" />
 
-            <ImageView
-                android:id="@+id/device_icon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:contentDescription="@null"
-                android:src="@android:drawable/ic_menu_my_calendar"
-                app:tint="?attr/colorPrimary" />
+                    <LinearLayout
+                        android:id="@+id/status_banner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                        <ProgressBar
+                            android:id="@+id/status_progress"
+                            style="?android:attr/progressBarStyleSmall"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:indeterminateTint="@color/home_accent"
+                            android:visibility="gone" />
 
-                <TextView
-                    android:id="@+id/device_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceSubtitle1"
-                    tools:text="Watch" />
+                        <ImageView
+                            android:id="@+id/status_icon"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:contentDescription="@null"
+                            android:src="@android:drawable/stat_sys_data_bluetooth"
+                            app:tint="@color/home_accent" />
 
-                <TextView
-                    android:id="@+id/device_mac"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceBody2"
-                    tools:text="AA:BB:CC:DD:EE:FF" />
-            </LinearLayout>
+                        <TextView
+                            android:id="@+id/status_text"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:textColor="@color/home_secondary"
+                            android:textSize="13sp"
+                            tools:text="Connected" />
+                    </LinearLayout>
 
-            <TextView
-                android:id="@+id/device_state"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceCaption"
-                tools:text="å·²è¿žæŽ¥" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+                    <!-- Only device information is hidden without a selection; connection actions stay visible. -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/device_card"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:visibility="gone"
+                        app:cardBackgroundColor="@color/home_card"
+                        app:cardCornerRadius="0dp"
+                        app:cardElevation="0dp"
+                        app:cardPreventCornerOverlap="false"
+                        app:cardUseCompatPadding="false"
+                        app:strokeWidth="0dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="4dp">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_scan"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/scan_connect"
-            app:icon="@android:drawable/stat_sys_data_bluetooth" />
+                            <ImageView
+                                android:id="@+id/device_icon"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:contentDescription="@null"
+                                android:src="@android:drawable/ic_menu_my_calendar"
+                                android:visibility="gone" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:baselineAligned="false"
-            android:orientation="horizontal">
+                            <TextView
+                                android:id="@+id/device_name"
+                                style="@style/Widget.SDKDemo.Home.DeviceText"
+                                tools:text="Demo Watch" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_bind"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:text="@string/bind_watch" />
+                            <TextView
+                                android:id="@+id/device_mac"
+                                style="@style/Widget.SDKDemo.Home.DeviceText"
+                                tools:text="AA:BB:CC:DD:EE:FF" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_sync"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:text="@string/sync_data" />
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:orientation="horizontal">
+                            <TextView
+                                android:id="@+id/device_state"
+                                style="@style/Widget.SDKDemo.Home.DeviceText"
+                                tools:text="Bound" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_sync_jl"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:text="@string/sync_data_jl" />
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:baselineAligned="false"
-            android:orientation="horizontal">
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row"
+                        android:layout_marginTop="0dp">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_scan"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/home_scan_connect" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_bind"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/home_bind" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_disconnect"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:layout_marginEnd="0dp"
+                            android:text="@string/home_disconnect" />
+                    </LinearLayout>
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_unbind"
+                            style="@style/Widget.SDKDemo.Home.Tile.Destructive"
+                            android:text="@string/home_unbind" />
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp" />
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_unbind"
-                style="@style/Widget.SDKDemo.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:text="@string/unbind_watch" />
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.SDKDemo.Home.Card">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_disconnect"
-                style="@style/Widget.SDKDemo.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:text="@string/disconnect" />
-        </LinearLayout>
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/home_health" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/feature_section"
-            android:textAppearance="?attr/textAppearanceSubtitle2" />
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row"
+                        android:layout_marginTop="0dp">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_sync"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/sync_data" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_sync_jl"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/sync_data_jl" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_manual_measure_jl"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:layout_marginEnd="0dp"
+                            android:text="@string/feature_manual_measure_jl" />
+                    </LinearLayout>
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_auto_monitoring"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/home_auto_monitoring" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_goals"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_goals" />
+                        <!-- Match button height: a zero-height spacer can collapse this wrap-content row. -->
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:baselineAligned="false"
-            android:orientation="horizontal">
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.SDKDemo.Home.Card">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_goals"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:text="@string/feature_goals" />
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/home_daily" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_alarms"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:text="@string/feature_alarms" />
-        </LinearLayout>
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row"
+                        android:layout_marginTop="0dp">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_alarms"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_alarms" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_alarms_jl"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_alarms_jl" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_notify"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:layout_marginEnd="0dp"
+                            android:text="@string/home_notify" />
+                    </LinearLayout>
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_reminder_listener_jl"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_reminder_listener_jl" />
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp" />
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_auto_monitoring"
-            style="@style/Widget.SDKDemo.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/feature_auto_monitoring" />
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.SDKDemo.Home.Card">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_reminder_listener_jl"
-            style="@style/Widget.SDKDemo.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/feature_reminder_listener_jl" />
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/home_media" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_manual_measure_jl"
-            style="@style/Widget.SDKDemo.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/feature_manual_measure_jl" />
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row"
+                        android:layout_marginTop="0dp">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_watchface"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_watchface" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_watchface_jieli"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_watchface_jl" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_music"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:layout_marginEnd="0dp"
+                            android:text="@string/feature_music" />
+                    </LinearLayout>
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_album"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_album" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_ai"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_ai" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_watchface_studio"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:layout_marginEnd="0dp"
+                            android:text="@string/feature_watchface_studio" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_notify"
-            style="@style/Widget.SDKDemo.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/feature_notify" />
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.SDKDemo.Home.Card"
+                android:layout_marginBottom="0dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:baselineAligned="false"
-            android:orientation="horizontal">
+                <LinearLayout style="@style/Widget.SDKDemo.Home.CardContent">
+                    <TextView
+                        style="@style/Widget.SDKDemo.Home.Heading"
+                        android:text="@string/home_maintenance" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_music"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:text="@string/feature_music" />
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row"
+                        android:layout_marginTop="0dp">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_agps"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_agps" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_ota"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_ota" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_ota_jieli"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:layout_marginEnd="0dp"
+                            android:text="@string/feature_ota_jl" />
+                    </LinearLayout>
+                    <LinearLayout
+                        style="@style/Widget.SDKDemo.Home.Row">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_offline_map"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_offline_map" />
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp" />
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_album"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:text="@string/feature_album" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:baselineAligned="false"
-            android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_agps"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:text="@string/feature_agps" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_ota"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:text="@string/feature_ota" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:baselineAligned="false"
-            android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_watchface"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:text="@string/feature_watchface" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_watchface_studio"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:text="@string/feature_watchface_studio" />
-        </LinearLayout>
-
-        <!-- Title uses @string/feature_ai (same in zh/en). -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_ai"
-            style="@style/Widget.SDKDemo.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/feature_ai" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_ai_analysis"
-            style="@style/Widget.SDKDemo.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/ai_analysis_title" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_offline_map"
-            style="@style/Widget.SDKDemo.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/feature_offline_map" />
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:baselineAligned="false"
-            android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_ota_jieli"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:text="@string/feature_ota_jl" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_watchface_jieli"
-                style="@style/Widget.SDKDemo.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:text="@string/feature_watchface_jl" />
-        </LinearLayout>
-    </LinearLayout>
-
-        <TextView
-            android:id="@+id/sync_summary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="4dp"
-            android:textColor="?attr/colorPrimary"
-            android:visibility="gone"
-            tools:text="æ´»åŠ¨ 3 æ�¡"
-            tools:visibility="visible" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <View
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_toggle_logs"
+        style="@style/Widget.SDKDemo.Home.Tile"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="?android:attr/listDivider"
-        android:visibility="gone" />
+        android:layout_height="wrap_content"
+        android:layout_weight="0"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:text="@string/home_show_logs" />
 
     <LinearLayout
+        android:id="@+id/log_panel"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:minHeight="220dp"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:visibility="gone">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="4dp"
-            android:text="@string/logs"
-            android:textAppearance="?attr/textAppearanceSubtitle2" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/log_list"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="120dp"
             android:clipToPadding="false"
-            android:overScrollMode="always"
+            android:overScrollMode="ifContentScrolls"
             android:paddingHorizontal="16dp"
             android:paddingBottom="8dp"
             android:scrollbars="vertical"
             tools:listitem="@android:layout/simple_list_item_1" />
     </LinearLayout>
+
+    <!-- Keep synchronization results outside the scrolling cards, pinned to the bottom. -->
+    <TextView
+        android:id="@+id/sync_summary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="4dp"
+        android:textColor="@color/home_accent"
+        android:visibility="gone"
+        tools:visibility="visible" />
 </LinearLayout>

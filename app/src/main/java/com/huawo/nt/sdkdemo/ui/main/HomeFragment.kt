@@ -19,9 +19,10 @@ import com.huawo.nt.sdkdemo.ui.ViewModelFactory
 import com.huawo.nt.sdkdemo.ui.bind.BindFlowDialogFragment
 import com.huawo.nt.sdkdemo.ui.common.LogAdapter
 import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateFragment
-import com.huawo.nt.sdkdemo.ui.features.AiAnalysisFragment
 import com.huawo.nt.sdkdemo.ui.features.AiCenterFragment
 import com.huawo.nt.sdkdemo.ui.features.AlarmsFragment
+import com.huawo.nt.sdkdemo.ui.features.JLAlarmsFragment
+import com.huawo.nt.sdkdemo.ui.features.JLDataSyncFragment
 import com.huawo.nt.sdkdemo.ui.features.AlbumTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.AutoMonitoringFragment
 import com.huawo.nt.sdkdemo.ui.features.GoalsFragment
@@ -64,6 +65,13 @@ class HomeFragment : Fragment() {
         binding.logList.isNestedScrollingEnabled = true
         setupLanguageMenu()
 
+        // Layout-only toggle: keep collecting logs and leave SDK operations untouched.
+        binding.btnToggleLogs.setOnClickListener {
+            val expanded = !binding.logPanel.isVisible
+            binding.logPanel.isVisible = expanded
+            binding.btnToggleLogs.setText(if (expanded) R.string.home_hide_logs else R.string.home_show_logs)
+        }
+
         binding.btnScan.setOnClickListener {
             parentFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, ScanConnectFragment())
@@ -76,7 +84,12 @@ class HomeFragment : Fragment() {
             }
         }
         binding.btnSync.setOnClickListener { viewModel.sync() }
-        binding.btnSyncJl.setOnClickListener { viewModel.syncJl() }
+        binding.btnSyncJl.setOnClickListener {
+            val state = viewModel.uiState.value
+            if (!state.busy && (state.bound || state.phase == DevicePhase.CONNECTED)) {
+                openFeature(JLDataSyncFragment.newInstance(state.device?.macAddress))
+            }
+        }
         binding.btnUnbind.setOnClickListener {
             if (viewModel.prepareUnbind()) {
                 UnbindFlowDialogFragment().show(parentFragmentManager, "unbind")
@@ -89,6 +102,10 @@ class HomeFragment : Fragment() {
         binding.btnAlarms.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(AlarmsFragment())
         }
+        binding.btnAlarmsJl.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(JLAlarmsFragment())
+        }
+        // 无屏功能各自打开独立示例页，连接和忙碌状态仍由首页统一校验。
         binding.btnAutoMonitoring.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(AutoMonitoringFragment())
         }
@@ -124,9 +141,6 @@ class HomeFragment : Fragment() {
         }
         binding.btnAi.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(AiCenterFragment())
-        }
-        binding.btnAiAnalysis.setOnClickListener {
-            if (viewModel.prepareFeature()) openFeature(AiAnalysisFragment())
         }
         binding.btnOfflineMap.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(OfflineMapDownloadFragment())
@@ -233,6 +247,7 @@ class HomeFragment : Fragment() {
         binding.btnDisconnect.isEnabled = !state.busy && device != null
         binding.btnGoals.isEnabled = canFeature
         binding.btnAlarms.isEnabled = canFeature
+        binding.btnAlarmsJl.isEnabled = canFeature
         binding.btnAutoMonitoring.isEnabled = canFeature
         binding.btnReminderListenerJl.isEnabled = canFeature
         binding.btnManualMeasureJl.isEnabled = canFeature
@@ -245,7 +260,6 @@ class HomeFragment : Fragment() {
         binding.btnWatchface.isEnabled = canFeature
         binding.btnWatchfaceStudio.isEnabled = canFeature
         binding.btnAi.isEnabled = canFeature
-        binding.btnAiAnalysis.isEnabled = canFeature
         binding.btnOfflineMap.isEnabled = canFeature
         binding.btnWatchfaceJieli.isEnabled = canFeature
 

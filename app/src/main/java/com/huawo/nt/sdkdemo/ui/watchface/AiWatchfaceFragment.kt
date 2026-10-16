@@ -18,6 +18,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.button.MaterialButton
 import com.huawo.ai.AiCenter
 import com.huawo.ai.event.AiEvent
 import com.huawo.ai.handler.IErrorMessageProvider
@@ -160,12 +162,24 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        _binding = FragmentAiWatchfaceBinding.inflate(inflater, container, false)
+        _binding = if (arguments?.getBoolean(ARG_DEMO_UI) == true) {
+            // The standalone layout preserves the tab's binding IDs/types and all SDK callbacks.
+            FragmentAiWatchfaceBinding.bind(inflater.inflate(R.layout.fragment_ai_demo, container, false))
+        } else FragmentAiWatchfaceBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.findViewById<MaterialToolbar>(R.id.ai_demo_toolbar)?.setNavigationOnClickListener {
+            parentFragmentManager.popBackStack()
+        }
+        view.findViewById<MaterialButton>(R.id.btn_toggle_ai_logs)?.setOnClickListener { button ->
+            val panel = view.findViewById<View>(R.id.ai_log_panel)
+            val expanded = panel.visibility != View.VISIBLE
+            panel.visibility = if (expanded) View.VISIBLE else View.GONE
+            (button as MaterialButton).setText(if (expanded) R.string.home_hide_logs else R.string.home_show_logs)
+        }
         SpUtils.init(requireContext().applicationContext)
         setupSizeSpinner()
         setupRecordModeSpinner()
@@ -913,6 +927,13 @@ class AiWatchfaceFragment : Fragment(), AiEvent, IErrorMessageProvider {
     }
 
     companion object {
+        private const val ARG_DEMO_UI = "demo_ui"
+
+        /** Select standalone presentation only; recording, platform selection and SDK initialization are unchanged. */
+        fun newDemoInstance() = AiWatchfaceFragment().apply {
+            arguments = Bundle().apply { putBoolean(ARG_DEMO_UI, true) }
+        }
+
         /** Demo credentials (same as HaWoFit). Replace with vendor-issued key/secret for production. */
         private const val AI_DEMO_KEY = "1f34e8ae-4bfc-4464-8fb0-1282200d7bac"
         private const val AI_DEMO_SECRET = "b66e29bb1125d8c5d27139f467822c16"

@@ -26,6 +26,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * 管理一次真实设备测量：指令确认、测量值和设备结束事件分别处理。
+ * 测量未确认停止时保留当前会话并允许重试，防止其他开始按钮启动重叠测量。
+ * 会话编号隔离上一轮迟到回调，设备断开或切换时清理本地等待状态。
+ */
 class ManualMeasurementViewModel(
     application: Application,
     private val repository: BleRepository,
@@ -45,6 +50,7 @@ class ManualMeasurementViewModel(
     private var stopRequested = false
     private var stopAck = false
     private var stopEvent = false
+    // 同一会话可能多次重试停止，只有最新一次停止指令的应答可以更新状态。
     private var stopAttempt = 0
     private var commandTimeout: Runnable? = null
     private var measureTimeout: Runnable? = null
@@ -68,6 +74,7 @@ class ManualMeasurementViewModel(
         }
     }
 
+    /** 连接有效且没有未结束会话时，先注册本次监听，再发送指定类型的开始指令。 */
     fun start(type: DataType) {
         Log.i(TAG, "start enter type=$type phase=$phase")
         if (activeType != null) return
@@ -181,6 +188,7 @@ class ManualMeasurementViewModel(
         }
     }
 
+    /** 按钮、超时或页面退出均复用此入口；等待开始确认时先记录停止意图。 */
     fun stop(reason: String = "button") {
         val type = activeType ?: return
         Log.i(TAG, "stop enter type=$type phase=$phase reason=$reason")
@@ -243,11 +251,13 @@ class ManualMeasurementViewModel(
     }
 
     private fun finishStopIfReady() {
+        // 停止应答和设备结束事件分别记录，不能收到其中一个就提前释放会话。
         if (stopAck && stopEvent) finish(R.string.manual_measure_stopped)
     }
 
     private fun finish(statusRes: Int) {
         Log.i(TAG, "finish type=$activeType phase=$phase status=$statusRes session=$generation")
+        // 先令已排队的旧回调失效，再解绑监听和恢复按钮，避免清理期间被旧数据回写。
         generation++
         clearCommandTimeout()
         measureTimeout?.let { main.removeCallbacks(it) }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="home_background">#FF000000</color>
+    <color name="home_card">#FF1C1C1E</color>
+    <color name="home_tile">#FF2C2C2E</color>
+    <color name="home_text">#FFFFFFFF</color>
+    <color name="home_secondary">#FF98989F</color>
+    <color name="home_separator">#FF38383A</color>
+    <color name="home_accent">#FF0A84FF</color>
+    <color name="home_danger">#FFFF453A</color>
+</resources>
