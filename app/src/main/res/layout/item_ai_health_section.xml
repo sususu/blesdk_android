@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="20dp"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/section_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAlignment="viewStart"
+        android:textColor="@color/home_text"
+        android:textDirection="locale"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        tools:text="@string/ai_health_steps" />
+
+    <TextView
+        android:id="@+id/section_body"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textAlignment="viewStart"
+        android:textColor="@color/home_secondary"
+        android:textDirection="locale"
+        android:textSize="16sp"
+        tools:text="Step analysis" />
+</LinearLayout>

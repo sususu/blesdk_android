@@ -199,11 +199,11 @@
                             android:id="@+id/btn_goals"
                             style="@style/Widget.SDKDemo.Home.Tile"
                             android:text="@string/feature_goals" />
-                        <!-- Match button height: a zero-height spacer can collapse this wrap-content row. -->
-                        <Space
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_ai_health"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:layout_marginEnd="0dp"
+                            android:text="@string/feature_ai_health" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -239,15 +239,15 @@
                             android:id="@+id/btn_reminder_listener_jl"
                             style="@style/Widget.SDKDemo.Home.Tile"
                             android:text="@string/feature_reminder_listener_jl" />
-                        <Space
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:layout_marginEnd="8dp" />
-                        <Space
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_electronic_card"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:text="@string/feature_electronic_card" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_lift_wrist"
+                            style="@style/Widget.SDKDemo.Home.Tile"
+                            android:layout_marginEnd="0dp"
+                            android:text="@string/home_lift_wrist" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -344,36 +344,117 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_toggle_logs"
-        style="@style/Widget.SDKDemo.Home.Tile"
+    <!-- Collapsible activity log panel, pinned below the feature cards. -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/log_card"
+        style="@style/Widget.SDKDemo.Home.Card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="0"
         android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="8dp"
-        android:text="@string/home_show_logs" />
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="12dp">
 
-    <LinearLayout
-        android:id="@+id/log_panel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/log_list"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:clipToPadding="false"
-            android:overScrollMode="ifContentScrolls"
-            android:paddingHorizontal="16dp"
-            android:paddingBottom="8dp"
-            android:scrollbars="vertical"
-            tools:listitem="@android:layout/simple_list_item_1" />
-    </LinearLayout>
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/log_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="14dp">
+
+                <TextView
+                    android:id="@+id/log_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/home_logs_title"
+                    android:textColor="@color/home_text"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/log_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_log_count"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:textColor="@color/home_secondary"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    tools:text="12"
+                    tools:visibility="visible" />
+
+                <ImageView
+                    android:id="@+id/log_expand_icon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@string/home_show_logs"
+                    android:src="@drawable/ic_expand_chevron"
+                    app:tint="@color/home_secondary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/log_panel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/home_separator" />
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:background="@color/home_tile">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/log_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clipToPadding="false"
+                        android:overScrollMode="ifContentScrolls"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="8dp"
+                        android:scrollbars="vertical"
+                        tools:listitem="@layout/item_log" />
+
+                    <TextView
+                        android:id="@+id/log_empty"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:padding="16dp"
+                        android:text="@string/home_logs_empty"
+                        android:textColor="@color/home_secondary"
+                        android:textSize="13sp"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+                </FrameLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_clear_logs"
+                    style="@style/Widget.SDKDemo.Button.TextButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp"
+                    android:text="@string/home_logs_clear"
+                    android:textColor="@color/home_accent" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Keep synchronization results outside the scrolling cards, pinned to the bottom. -->
     <TextView
@@ -381,8 +462,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingHorizontal="16dp"
-        android:paddingVertical="4dp"
+        android:paddingBottom="8dp"
         android:textColor="@color/home_accent"
         android:visibility="gone"
+        tools:text="Activities 3 (steps 1200)"
         tools:visibility="visible" />
 </LinearLayout>

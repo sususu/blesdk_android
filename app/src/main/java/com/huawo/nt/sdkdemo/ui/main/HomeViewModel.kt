@@ -465,6 +465,10 @@ class HomeViewModel(
         }.trimEnd()
     }
 
+    fun clearLogs() {
+        _uiState.update { it.copy(logs = emptyList()) }
+    }
+
     private fun appendLog(msg: String) {
         val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         _uiState.update { state ->

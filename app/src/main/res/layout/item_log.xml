@@ -4,6 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:fontFamily="monospace"
-    android:paddingVertical="2dp"
-    android:textAppearance="?attr/textAppearanceCaption"
-    android:textColor="?android:attr/textColorSecondary" />
+    android:lineSpacingExtra="2dp"
+    android:paddingVertical="3dp"
+    android:textColor="@color/home_secondary"
+    android:textIsSelectable="true"
+    android:textSize="12sp" />

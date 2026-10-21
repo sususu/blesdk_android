@@ -71,6 +71,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.Spo2Callback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.SportsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.StressCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.StringListCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.TypedBaseInterfaceCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntValueCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.BoolCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.UpgradeStatusCallback
@@ -94,6 +95,7 @@ import com.huawo.watchface.Callback as SifliCallback
 import com.huawo.watchface.SifliWatchSDK
 import com.huawo.watchface.WatchfaceSDK
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.GetActivityNum
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.SetElectronicCard
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.GetSports
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.ActivityNum
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Alarm
@@ -102,6 +104,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Contact
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.DataType
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.DeviceInfo
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.DrinkWaterReminder
+import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.ElectronicCard
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.EmergencyContact
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Gender
 import com.huawo.sdk.bluetoothsdk.interfaces.ops.models.Goal
@@ -930,6 +933,16 @@ class BleRepository(private val application: Application) {
             BluetoothSDK.setRespiratoryRateMonitorInterval(interval, it)
         }
     }
+
+    // endregion
+
+    // region Raise to wake
+
+    suspend fun getFlipLightUpEnable(): Boolean =
+        awaitBoolValue("getFlipLightUpEnable failed") { BluetoothSDK.getFlipLightUpEnable(it) }
+
+    suspend fun setFlipLightUpEnable(on: Boolean) =
+        awaitVoid("setFlipLightUpEnable failed on=$on") { BluetoothSDK.setFlipLightUpEnable(on, it) }
 
     // endregion
 
@@ -2487,5 +2500,59 @@ class BleRepository(private val application: Application) {
         sppOfflineMapTask = null
         runCatching { SifliWatchSDK.getInstance().stop() }
     }
+
+    // region Electronic cards
+
+    suspend fun getAllElectronicCards(): List<ElectronicCard> =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getAllElectronicCard(
+                object : TypedBaseInterfaceCallback<List<ElectronicCard>>() {
+                    override fun onSuccess(value: List<ElectronicCard>?) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(value.orEmpty())
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(
+                                    SdkException(code, "getAllElectronicCard failed"),
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    suspend fun getElectronicCardValue(id: Int): String =
+        suspendCancellableCoroutine { cont ->
+            BluetoothSDK.getElectronicCardValue(
+                id,
+                object : TypedBaseInterfaceCallback<String>() {
+                    override fun onSuccess(value: String?) {
+                        mainHandler.post {
+                            if (cont.isActive) cont.resume(value.orEmpty())
+                        }
+                    }
+
+                    override fun onFail(code: Int) {
+                        mainHandler.post {
+                            if (cont.isActive) {
+                                cont.resumeWithException(
+                                    SdkException(code, "getElectronicCardValue failed"),
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
+    suspend fun setElectronicCard(param: SetElectronicCard.SetElectronicCardParam) =
+        awaitVoid("setElectronicCard failed") { BluetoothSDK.setElectronicCard(param, it) }
+
+    // endregion
 
 }

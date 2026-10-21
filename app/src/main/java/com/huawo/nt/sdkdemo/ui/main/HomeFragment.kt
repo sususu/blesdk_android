@@ -19,14 +19,17 @@ import com.huawo.nt.sdkdemo.ui.ViewModelFactory
 import com.huawo.nt.sdkdemo.ui.bind.BindFlowDialogFragment
 import com.huawo.nt.sdkdemo.ui.common.LogAdapter
 import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateFragment
+import com.huawo.nt.sdkdemo.ui.features.AiHealthAnalysisFragment
 import com.huawo.nt.sdkdemo.ui.features.AiCenterFragment
 import com.huawo.nt.sdkdemo.ui.features.AlarmsFragment
 import com.huawo.nt.sdkdemo.ui.features.JLAlarmsFragment
 import com.huawo.nt.sdkdemo.ui.features.JLDataSyncFragment
 import com.huawo.nt.sdkdemo.ui.features.AlbumTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.AutoMonitoringFragment
+import com.huawo.nt.sdkdemo.ui.features.ElectronicCardListFragment
 import com.huawo.nt.sdkdemo.ui.features.GoalsFragment
 import com.huawo.nt.sdkdemo.ui.features.JLOtaUpgradeFragment
+import com.huawo.nt.sdkdemo.ui.features.LiftWristAwakenFragment
 import com.huawo.nt.sdkdemo.ui.features.ManualMeasurementFragment
 import com.huawo.nt.sdkdemo.ui.features.MusicTransferFragment
 import com.huawo.nt.sdkdemo.ui.features.NotifyFragment
@@ -48,6 +51,7 @@ class HomeFragment : Fragment() {
 
     private val viewModel: HomeViewModel by activityViewModels { ViewModelFactory() }
     private val logAdapter = LogAdapter()
+    private var logsExpanded = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -60,17 +64,22 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        logsExpanded = savedInstanceState?.getBoolean(STATE_LOGS_EXPANDED) == true
         binding.logList.layoutManager = LinearLayoutManager(requireContext())
         binding.logList.adapter = logAdapter
         binding.logList.isNestedScrollingEnabled = true
+        applyLogsExpanded(animateIcon = false)
         setupLanguageMenu()
 
         // Layout-only toggle: keep collecting logs and leave SDK operations untouched.
-        binding.btnToggleLogs.setOnClickListener {
-            val expanded = !binding.logPanel.isVisible
-            binding.logPanel.isVisible = expanded
-            binding.btnToggleLogs.setText(if (expanded) R.string.home_hide_logs else R.string.home_show_logs)
+        binding.logHeader.setOnClickListener {
+            logsExpanded = !logsExpanded
+            applyLogsExpanded(animateIcon = true)
+            if (logsExpanded && logAdapter.itemCount > 0) {
+                binding.logList.scrollToPosition(0)
+            }
         }
+        binding.btnClearLogs.setOnClickListener { viewModel.clearLogs() }
 
         binding.btnScan.setOnClickListener {
             parentFragmentManager.beginTransaction()
@@ -99,6 +108,9 @@ class HomeFragment : Fragment() {
         binding.btnGoals.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(GoalsFragment())
         }
+        binding.btnAiHealth.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(AiHealthAnalysisFragment())
+        }
         binding.btnAlarms.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(AlarmsFragment())
         }
@@ -111,6 +123,12 @@ class HomeFragment : Fragment() {
         }
         binding.btnReminderListenerJl.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(ReminderListenerFragment())
+        }
+        binding.btnElectronicCard.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(ElectronicCardListFragment())
+        }
+        binding.btnLiftWrist.setOnClickListener {
+            if (viewModel.prepareFeature()) openFeature(LiftWristAwakenFragment())
         }
         binding.btnManualMeasureJl.setOnClickListener {
             if (viewModel.prepareFeature()) openFeature(ManualMeasurementFragment())
@@ -234,6 +252,13 @@ class HomeFragment : Fragment() {
         binding.syncSummary.isVisible = state.syncSummary.isNotBlank()
         binding.syncSummary.text = state.syncSummary
 
+        val logCount = state.logs.size
+        binding.logCount.isVisible = logCount > 0
+        binding.logCount.text = getString(R.string.home_logs_count, logCount)
+        binding.logEmpty.isVisible = logsExpanded && logCount == 0
+        binding.logList.isVisible = logCount > 0
+        binding.btnClearLogs.isEnabled = logCount > 0
+
         val canBind = !state.busy && device != null && !state.bound
         val canSync = !state.busy && (state.bound || state.phase == DevicePhase.CONNECTED)
         val canUnbind = !state.busy && state.bound
@@ -246,10 +271,13 @@ class HomeFragment : Fragment() {
         binding.btnUnbind.isEnabled = canUnbind
         binding.btnDisconnect.isEnabled = !state.busy && device != null
         binding.btnGoals.isEnabled = canFeature
+        binding.btnAiHealth.isEnabled = canFeature
         binding.btnAlarms.isEnabled = canFeature
         binding.btnAlarmsJl.isEnabled = canFeature
         binding.btnAutoMonitoring.isEnabled = canFeature
         binding.btnReminderListenerJl.isEnabled = canFeature
+        binding.btnElectronicCard.isEnabled = canFeature
+        binding.btnLiftWrist.isEnabled = canFeature
         binding.btnManualMeasureJl.isEnabled = canFeature
         binding.btnNotify.isEnabled = canFeature
         binding.btnMusic.isEnabled = canFeature
@@ -263,7 +291,25 @@ class HomeFragment : Fragment() {
         binding.btnOfflineMap.isEnabled = canFeature
         binding.btnWatchfaceJieli.isEnabled = canFeature
 
+        val previousCount = logAdapter.itemCount
         logAdapter.submit(state.logs)
+        if (logsExpanded && state.logs.isNotEmpty() && state.logs.size != previousCount) {
+            binding.logList.scrollToPosition(0)
+        }
+    }
+
+    private fun applyLogsExpanded(animateIcon: Boolean) {
+        binding.logPanel.isVisible = logsExpanded
+        binding.logExpandIcon.contentDescription =
+            getString(if (logsExpanded) R.string.home_hide_logs else R.string.home_show_logs)
+        val targetRotation = if (logsExpanded) 180f else 0f
+        if (animateIcon) {
+            binding.logExpandIcon.animate().rotation(targetRotation).setDuration(180L).start()
+        } else {
+            binding.logExpandIcon.rotation = targetRotation
+        }
+        binding.logEmpty.isVisible = logsExpanded && logAdapter.itemCount == 0
+        binding.logList.isVisible = logAdapter.itemCount > 0
     }
 
     private fun openFeature(fragment: Fragment) {
@@ -273,8 +319,17 @@ class HomeFragment : Fragment() {
             .commit()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_LOGS_EXPANDED, logsExpanded)
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private const val STATE_LOGS_EXPANDED = "home_logs_expanded"
     }
 }

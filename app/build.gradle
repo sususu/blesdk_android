@@ -84,6 +84,7 @@ dependencies {
     implementation libs.okhttp.sse
     implementation libs.play.services.location
     implementation libs.play.services.maps
+    implementation libs.zxing.android.embedded
 
     testImplementation libs.junit
     androidTestImplementation libs.androidx.espresso.core

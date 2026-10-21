@@ -10,10 +10,14 @@ import com.huawo.nt.sdkdemo.ui.features.AlarmsViewModel
 import com.huawo.nt.sdkdemo.ui.features.JLAlarmsViewModel
 import com.huawo.nt.sdkdemo.ui.features.JLDataSyncViewModel
 import com.huawo.nt.sdkdemo.ui.features.AiAnalysisViewModel
+import com.huawo.nt.sdkdemo.ui.features.AiHealthAnalysisViewModel
 import com.huawo.nt.sdkdemo.ui.features.AlbumTransferViewModel
 import com.huawo.nt.sdkdemo.ui.features.AgpsUpdateViewModel
 import com.huawo.nt.sdkdemo.ui.features.AutoMonitoringViewModel
+import com.huawo.nt.sdkdemo.ui.features.ElectronicCardEditViewModel
+import com.huawo.nt.sdkdemo.ui.features.ElectronicCardListViewModel
 import com.huawo.nt.sdkdemo.ui.features.GoalsViewModel
+import com.huawo.nt.sdkdemo.ui.features.LiftWristAwakenViewModel
 import com.huawo.nt.sdkdemo.ui.features.JLOtaUpgradeViewModel
 import com.huawo.nt.sdkdemo.ui.features.ManualMeasurementViewModel
 import com.huawo.nt.sdkdemo.ui.features.MusicTransferViewModel
@@ -53,8 +57,12 @@ class ViewModelFactory(
             // AI 分析直接调用云端 SDK；设备功能的 ViewModel 继续共享同一个 BleRepository。
             modelClass.isAssignableFrom(AiAnalysisViewModel::class.java) ->
                 AiAnalysisViewModel(application) as T
+            modelClass.isAssignableFrom(AiHealthAnalysisViewModel::class.java) ->
+                AiHealthAnalysisViewModel(application) as T
             modelClass.isAssignableFrom(AutoMonitoringViewModel::class.java) ->
                 AutoMonitoringViewModel(application, repository) as T
+            modelClass.isAssignableFrom(LiftWristAwakenViewModel::class.java) ->
+                LiftWristAwakenViewModel(application, repository) as T
             modelClass.isAssignableFrom(ReminderListenerViewModel::class.java) ->
                 ReminderListenerViewModel(application, repository) as T
             modelClass.isAssignableFrom(ManualMeasurementViewModel::class.java) ->
@@ -77,6 +85,10 @@ class ViewModelFactory(
                 JLOnlineWatchfaceViewModel(application, repository) as T
             modelClass.isAssignableFrom(OfflineMapDownloadViewModel::class.java) ->
                 OfflineMapDownloadViewModel(application, repository) as T
+            modelClass.isAssignableFrom(ElectronicCardListViewModel::class.java) ->
+                ElectronicCardListViewModel(application, repository) as T
+            modelClass.isAssignableFrom(ElectronicCardEditViewModel::class.java) ->
+                ElectronicCardEditViewModel(application, repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
         }
     }
