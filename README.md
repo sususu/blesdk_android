@@ -14,7 +14,7 @@ It covers the full product flow used in production apps:
 | minSdk / targetSdk / compileSdk | 28 / 36 / 36 |
 | versionName / versionCode | `1.0` / `1` |
 | BluetoothSDK | **2.5.4.129** (`com.huawo.sdk.bluetoothsdk.BluetoothSDK`) |
-| AI extension | **1.5.1.29** (`com.huawo.ai.AiCenter`) |
+| AI extension | **1.5.1.30** (`com.huawo.ai.AiCenter`) |
 | API reference | [`SDK_android.md`](./SDK_android.md) (Chinese, full SDK usage) |
 
 ---
@@ -249,7 +249,7 @@ The JieLi automatic-monitoring page shows one row per metric with a real-device 
 
 ### Manual measurement (JieLi)
 
-Six start buttons call the SDK for heart rate, SpO2, stress, HRV, respiratory rate and skin temperature. The page keeps one measurement session, receives timestamped integer / float values, handles wear and device-stop events, and allows retrying an unconfirmed stop. A start acknowledgement is not measurement completion; unsupported device capabilities remain SDK errors. See [SDK guide §9.4](./SDK_android.md#94-手动测量杰里).
+Six start buttons call the SDK for heart rate, SpO2, stress, HRV, respiratory rate and skin temperature. Heart rate uses `HeartrateWithTimeCallback` to display bpm, the device timestamp in milliseconds and the device-supplied resting flag; the other metrics retain their integer / float callbacks. The updated SDK expects a six-byte heart-rate sample and does not accept the old five-byte format. The page keeps one measurement session, handles wear and device-stop events, and allows retrying an unconfirmed stop. A start acknowledgement is not measurement completion; unsupported device capabilities remain SDK errors. See [SDK guide §9.4](./SDK_android.md#94-手动测量杰里).
 
 ### Reminder listener (JieLi)
 
@@ -406,7 +406,7 @@ All `*.aar` files in `app/libs/` are loaded by `fileTree`; `BmpConvert` is inclu
 | AAR | Role |
 |-----|------|
 | `BluetoothSDK-2.5.4.129.aar` | Main BLE SDK |
-| `ai-1.5.1.29.aar` | AI analysis and other AI integration APIs |
+| `ai-1.5.1.30.aar` | AI analysis and other AI integration APIs |
 | `QW_release_V4.7.2.aar` | AFlash runtime used by AI |
 | `BmpConvert_V1.6.0_10608_qiwo.aar` | JieLi watchface image conversion runtime |
 | `jl_pack_resource_V1.0.0_10_qiwo.aar` | JieLi resource packing runtime |

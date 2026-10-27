@@ -94,12 +94,12 @@ object JLCustomWatchfacePackUtil {
         var failed: String? = null
         val converter = BmpConvert()
         try {
-            // TYPE_707N_ARGB is the watch resource format; do not change it without firmware agreement.
+            // Match the current JieLi firmware and AI packer: unpacked ARGB8888 resources.
             converter.bitmapConvert(
-                BmpConvert.TYPE_707N_ARGB,
+                BmpConvert.TYPE_707N_ARGB_NO_PACK,
                 source.absolutePath,
                 target.absolutePath,
-                ConvertParam().setFormat(ConvertParam.FORMAT_AUTO),
+                ConvertParam().setFormat(ConvertParam.FORMAT_ARGB_8888),
                 object : OnConvertListener {
                     override fun onStart(path: String?) = Unit
 

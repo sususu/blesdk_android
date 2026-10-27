@@ -234,6 +234,7 @@
     <string name="manual_measure_timeout">Measurement timed out (60 seconds).</string>
     <string name="manual_measure_invalid">Invalid reading ignored: value=%1$s, deviceTimeMs=%2$d</string>
     <string name="manual_measure_value">Type: %1$s\nValue: %2$s\nDevice time: %3$s (%4$d ms)</string>
+    <string name="manual_measure_resting_flag">Resting flag: %1$s</string>
     <string name="manual_measure_no_value">No valid reading received.</string>
     <string name="reminder_listener_start">Start reminder listening</string>
     <string name="reminder_listener_stop">Stop reminder listening</string>

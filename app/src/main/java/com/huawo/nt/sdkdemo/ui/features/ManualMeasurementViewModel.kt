@@ -12,6 +12,7 @@ import com.huawo.nt.sdkdemo.data.repository.BleRepository
 import com.huawo.nt.sdkdemo.util.LocaleHelper
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.BoolCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.FloatValueWithTimeCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.HeartrateWithTimeCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntValueWithTimeCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.MonitorStateChangedCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.NotProperlyWornCallback
@@ -126,7 +127,14 @@ class ManualMeasurementViewModel(
 
     private fun registerCallbacks(token: Long, type: DataType) {
         // Timestamped numeric callbacks do not carry a metric type: only this session may consume them.
-        if (type == DataType.SkinTemperature) {
+        // 新心率协议通过专用监听透传静息标志，不再走通用整数监听。
+        if (type == DataType.HeartRate) {
+            val valueCallback = HeartrateWithTimeCallback { bpm, timeMs, resting ->
+                postCurrent(token) { receiveValue(bpm, timeMs, resting) }
+            }
+            repository.addRealtimeHeartrateWithTimeListener(valueCallback)
+            valueRemovers += { repository.removeRealtimeHeartrateWithTimeListener(valueCallback) }
+        } else if (type == DataType.SkinTemperature) {
             val valueCallback = FloatValueWithTimeCallback { value, timeMs ->
                 postCurrent(token) { receiveValue(value, timeMs) }
             }
@@ -167,7 +175,7 @@ class ManualMeasurementViewModel(
         stopRemover = { repository.removeMonitorStateChangedCallback(stoppedCallback) }
     }
 
-    private fun receiveValue(value: Number, timeMs: Long) {
+    private fun receiveValue(value: Number, timeMs: Long, resting: Boolean? = null) {
         if (phase != Phase.MEASURING || stopRequested) return
         if (!sameDevice()) { finish(R.string.manual_measure_disconnected); return }
         // Keep Celsius floating-point and SDK millisecond timestamps; do not invent missing readings.
@@ -179,11 +187,13 @@ class ManualMeasurementViewModel(
         val type = activeType ?: return
         val reading = if (type == DataType.SkinTemperature) "$value °C" else value.toString()
         val deviceTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(timeMs))
-        Log.i(TAG, "value type=$type value=$value timeMs=$timeMs session=$generation")
+        Log.i(TAG, "value type=$type value=$value timeMs=$timeMs resting=$resting session=$generation")
+        val details = str(R.string.manual_measure_value, type.name, reading, deviceTime, timeMs)
         _uiState.update {
             it.copy(
                 status = str(R.string.manual_measure_measuring, type.name),
-                result = str(R.string.manual_measure_value, type.name, reading, deviceTime, timeMs),
+                result = if (resting == null) details else
+                    "$details\n${str(R.string.manual_measure_resting_flag, resting.toString())}",
             )
         }
     }

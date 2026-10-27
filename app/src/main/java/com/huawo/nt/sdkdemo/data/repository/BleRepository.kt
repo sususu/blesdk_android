@@ -54,6 +54,7 @@ import com.huawo.sdk.bluetoothsdk.interfaces.callback.FloatValueWithTimeCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.GoalCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.GpsStatusCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.HeartratesCallback
+import com.huawo.sdk.bluetoothsdk.interfaces.callback.HeartrateWithTimeCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.HrvsCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntArrayCallback
 import com.huawo.sdk.bluetoothsdk.interfaces.callback.IntValueWithTimeCallback
@@ -876,6 +877,8 @@ class BleRepository(private val application: Application) {
     }
 
     // 数值回调不携带测量类型，上层只能绑定一个当前会话；解绑时使用同一个回调实例。
+    fun addRealtimeHeartrateWithTimeListener(callback: HeartrateWithTimeCallback) = BluetoothSDK.addRealtimeHeartrateWithTimeListener(callback)
+    fun removeRealtimeHeartrateWithTimeListener(callback: HeartrateWithTimeCallback) = BluetoothSDK.removeRealtimeHeartrateWithTimeListener(callback)
     fun addRealtimeIntWithTimeListener(callback: IntValueWithTimeCallback) = BluetoothSDK.addRealtimeIntWithTimeListener(callback)
     fun removeRealtimeIntWithTimeListener(callback: IntValueWithTimeCallback) = BluetoothSDK.removeRealtimeIntWithTimeListener(callback)
     fun addRealtimeFloatWithTimeListener(callback: FloatValueWithTimeCallback) = BluetoothSDK.addRealtimeFloatWithTimeListener(callback)

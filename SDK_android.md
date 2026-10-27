@@ -2,7 +2,7 @@
 
 **BluetoothSDK 版本**：2.5.4.129（当前 Demo 本地 AAR）
 
-**AI 扩展版本**：1.5.1.29（可选，见 §23）
+**AI 扩展版本**：1.5.1.30（可选，见 §23）
 
 **入口类**：`com.huawo.sdk.bluetoothsdk.BluetoothSDK`  
 **最低 Android 版本**：minSdk 24  
@@ -191,7 +191,7 @@ dependencies {
 | 瑞昱/阿波罗固件 OTA、WL 固件 OTA | **是** | 无需额外包 |
 | 思澈 ZIP 音乐推送、QJS 表盘推送 | **否** | `qjs-watchface` + 通常还需 `sifliezipsdk` / `siflicore` / `sifliwatchfacesdk`（见 [§14.5](#145-方案-c思澈sifli-ble-zip-推送需额外-aar)） |
 | 思澈固件 DFU OTA | **否** | `com.sifli:SifliDFU`（见 [§17.5](#175-方案-c思澈siflidfu-固件升级需额外依赖)） |
-| 无屏 AI 健康分析、洞察、身体状态、睡眠报告 | **否** | `ai-1.5.1.29.aar`、配套 AFlash / 表盘 / 杰理库及 OmniAgent Maven 依赖，见 §23.1 |
+| 无屏 AI 健康分析、洞察、身体状态、睡眠报告 | **否** | `ai-1.5.1.30.aar`、配套 AFlash / 表盘 / 杰理库及 OmniAgent Maven 依赖，见 §23.1 |
 
 > **音乐文件推送**见 [§14](#14-音乐文件推送)；**固件 OTA** 见 [§17](#17-ota-固件升级)。仅做 WL / 瑞昱基础蓝牙能力时无需 AI 扩展；需要 AI 分析时必须额外集成 §23 的依赖。
 
@@ -1120,6 +1120,8 @@ HRV：      getHrvV2           / delHrvV2
 
 数据来自设备，不是本地模拟记录；保留现有模型的毫秒时间戳、浮点摄氏度及其他单位，不增加平台判断。新页结果不回写为首页“杰理同步完成”，不清空首页已有汇总；通用 `sync()`、其自动清理和首页底部汇总保持原行为。`getWorkoutV2()` 以 SDK 原始 `Workout` 模型展示运动记录及随回包提供的点列，和 `getStepV2()` 的步数／活动摘要分开；读取不自动删除，也不额外请求 `getWorkoutPoints()`。本页不读取 `HEART_RES` 或体温 `BODY_TEMPERATURE`；运动接口详见 §10。
 
+当前交付 SDK 的杰理 V2 历史头包／详情使用 `0xBD`，响应校验同步使用 `0xBD`；皮肤温度、呼吸频率删除指令也已切换为 `0xBD`，其他删除类型仍沿用各自原指令。Demo 继续调用上述单项 API，不自行拼包，不增加平台判断或旧 `0xBE` 回退，需要使用匹配的设备固件。同名 `BluetoothSDK-2.5.4.129.aar` 不代表同一构建，替换交付包时应核对 API 与 SHA-256。
+
 ### 9.3 监测开关与告警
 
 ```java
@@ -1174,8 +1176,11 @@ BluetoothSDK.setRespiratoryRateMonitorInterval(0, boolCallback);
 
 ```java
 // 以下变量由当前页面持有；注册与移除必须使用同一实例。
+HeartrateWithTimeCallback heartValues = (bpm, timeMs, resting) -> {
+    // 心率：次/分钟、设备毫秒时间戳、设备返回的静息标志。
+};
 IntValueWithTimeCallback intValues = (value, timeMs) -> {
-    // 心率、血氧、压力、HRV、呼吸频率：整数值 + 设备毫秒时间戳
+    // 血氧、压力、HRV、呼吸频率：整数值 + 设备毫秒时间戳。
 };
 FloatValueWithTimeCallback floatValues = (value, timeMs) -> {
     // 皮肤温度：浮点摄氏度 + 设备毫秒时间戳
@@ -1187,8 +1192,8 @@ NotProperlyWornCallback worn = new NotProperlyWornCallback() {
     @Override public void onAppear() { /* 提示正确佩戴，不显示测量完成 */ }
 };
 
-// 本例启动心率；皮肤温度只注册 floatValues，其余类型只注册 intValues。
-BluetoothSDK.addRealtimeIntWithTimeListener(intValues);
+// 本例启动心率；皮肤温度只注册 floatValues，其他四类只注册 intValues。
+BluetoothSDK.addRealtimeHeartrateWithTimeListener(heartValues);
 BluetoothSDK.addMonitorStateChangedCallback(stopped);
 BluetoothSDK.addNotProperlyWornCallback(worn);
 BluetoothSDK.startMonitoring(DataType.HeartRate, new BoolCallback() {
@@ -1200,14 +1205,18 @@ BluetoothSDK.startMonitoring(DataType.HeartRate, new BoolCallback() {
 BluetoothSDK.stopMonitoring(DataType.HeartRate, boolCallback);
 
 // 完成本次会话后再移除自身监听；不要调用 removeAll* 影响其他页面。
-BluetoothSDK.removeRealtimeIntWithTimeListener(intValues);
+BluetoothSDK.removeRealtimeHeartrateWithTimeListener(heartValues);
 BluetoothSDK.removeMonitorStateChangedCallback(stopped);
 BluetoothSDK.removeNotProperlyWornCallback(worn);
 // 皮肤温度对应 addRealtimeFloatWithTimeListener(floatValues)
 //              / removeRealtimeFloatWithTimeListener(floatValues)。
+// 血氧、压力、HRV、呼吸频率对应 addRealtimeIntWithTimeListener(intValues)
+//                         / removeRealtimeIntWithTimeListener(intValues)。
 ```
 
 上例是接口调用片段，停止与清理不是紧跟开始后立即执行。Demo 的会话顺序是：注册本次监听 → 发送开始指令 → 指令确认 → 接收读数 → 设备结束或主动停止 → 清理本次会话。同一时间只保留一个测量会话；带时间的数值回调不携带 `DataType`，不能同时开启多个类型后再根据回调自行猜测来源。UI 更新切回主线程，迟到回调按会话标识丢弃。
+
+`HeartrateWithTimeCallback` 包路径为 `com.huawo.sdk.bluetoothsdk.interfaces.callback.HeartrateWithTimeCallback`。当前无屏心率通知 `0x1D` 使用六字节数据：`bpm(1) + resting(1) + time(4)`，时间为小端秒值，SDK 已转换为毫秒；`resting` 由设备给出，不由 Demo 根据心率阈值推算。心率不再派发给通用整数监听，旧五字节心率格式会被 SDK 拒绝并记录长度错误。此变更需要配套固件，Demo 不增加平台判断或旧格式回退；其他测量类型的监听保持不变。
 
 - 开始成功只是指令确认，不是“测量完成”。数值、设备时间、佩戴异常和设备停止分别处理。
 - 明确拒绝开始时，Demo 保留原错误、清理本地会话并恢复开始按钮，不再追加停止命令。超时、发送或解析异常等不确定结果不能直接视为设备从未开始。
@@ -1897,6 +1906,8 @@ import com.huawo.sdk.bluetoothsdk.wl.models.V10CustomWatchfaceConfig;
 List<File> resourceFiles = ...;
 // resourceFiles 示例顺序：pw, bg1, bg2...
 // 这些文件必须是按 WL V10 固件协议转换后的资源文件，不是普通 jpg/png 原图。
+// 当前配套固件使用 BmpConvert.TYPE_707N_ARGB_NO_PACK
+// 和 ConvertParam.FORMAT_ARGB_8888；Demo 自定义与 AI 表盘转换保持一致。
 
 List<MediaFileInfo> files = new ArrayList<>();
 for (File file : resourceFiles) {
@@ -3185,7 +3196,7 @@ private void syncEnvironmentAndEndBind() {
 
 ### 23.1 依赖与权限
 
-当前 Demo 的本地交付版本为 `BluetoothSDK-2.5.4.129.aar` 和 `ai-1.5.1.29.aar`。AI 包是独立扩展，并非 BluetoothSDK 内置能力；本地 AAR 不携带 Maven 的传递依赖描述，不能只复制一个 `ai-*.aar` 就认为集成完成。
+当前 Demo 的本地交付版本为 `BluetoothSDK-2.5.4.129.aar` 和 `ai-1.5.1.30.aar`。AI 包是独立扩展，并非 BluetoothSDK 内置能力；本地 AAR 不携带 Maven 的传递依赖描述，不能只复制一个 `ai-*.aar` 就认为集成完成。
 
 当前 Demo 的配套厂商包包括 `QW_release_V4.7.2.aar`（AFlash）、`qjs-watchface-15.0.16.aar`、`BmpConvert_V1.6.0_10608_qiwo.aar`、`jl_pack_resource_V1.0.0_10_qiwo.aar`，以及所需 `sifliezipsdk`／`siflicore`／`sifliwatchfacesdk`。这是 Demo 完整运行时清单中的 AI 相关部分，不声明为任意产品都可裁剪的最小依赖；`AiCenter` 共用表盘等类型，裁剪需核对厂商交付要求。
 

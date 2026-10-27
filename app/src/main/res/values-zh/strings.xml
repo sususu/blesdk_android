@@ -234,6 +234,7 @@
     <string name="manual_measure_timeout">测量超时（60 秒）。</string>
     <string name="manual_measure_invalid">已忽略无效读数：数值=%1$s，设备时间毫秒=%2$d</string>
     <string name="manual_measure_value">类型：%1$s\n数值：%2$s\n设备时间：%3$s（%4$d ms）</string>
+    <string name="manual_measure_resting_flag">静息标志：%1$s</string>
     <string name="manual_measure_no_value">本次未收到有效读数。</string>
     <string name="reminder_listener_start">开始提醒监听</string>
     <string name="reminder_listener_stop">停止提醒监听</string>
